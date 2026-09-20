@@ -1,0 +1,36 @@
+name: Verify webapp
+
+on:
+  push:
+    branches: [main, design/quiet-cinema]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        id: install
+        run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Build production app
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
