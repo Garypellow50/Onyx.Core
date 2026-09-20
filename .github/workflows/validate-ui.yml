@@ -1,0 +1,35 @@
+name: Validate interface
+
+on:
+  push:
+    branches: [main, design/onyx-cinema]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: TypeScript and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check TypeScript
+        id: types
+        run: npx tsc --noEmit
+      - name: Build production application
+        if: success() || steps.types.outcome == 'failure'
+        run: npm run build
