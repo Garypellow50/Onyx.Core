@@ -1,4 +1,4 @@
-import { useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { useRef, useState, type ComponentProps, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   AudioLines,
@@ -111,7 +111,10 @@ export function ControlBar(props: ControlBarProps) {
     >
       <div
         ref={trackRef}
-        className={cn("group relative h-7", hasDuration ? "cursor-pointer" : "cursor-not-allowed opacity-50")}
+        className={cn(
+          "group relative h-7 rounded-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-card",
+          hasDuration ? "cursor-pointer" : "cursor-not-allowed opacity-50",
+        )}
         onPointerMove={(event) => {
           if (event.pointerType !== "mouse" || !hasDuration) return;
           setHoverTime(positionFromEvent(event.clientX));
@@ -148,7 +151,7 @@ export function ControlBar(props: ControlBarProps) {
           type="range"
           min={0}
           max={duration}
-          step="any"
+          step={0.1}
           value={currentTime}
           disabled={!hasDuration}
           aria-label="Seek through video"
@@ -166,13 +169,9 @@ export function ControlBar(props: ControlBarProps) {
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center">
-        <div className="flex min-w-0 items-center gap-1">
-          <IconButton
-            label={props.playing ? "Pause" : "Play"}
-            onClick={props.onTogglePlay}
-            emphasis
-          >
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
+          <IconButton label={props.playing ? "Pause" : "Play"} onClick={props.onTogglePlay} emphasis>
             {props.playing ? <Pause className="size-5" /> : <Play className="size-5 fill-current" />}
           </IconButton>
           <IconButton label="Back 10 seconds" onClick={() => props.onSkip(-10)}>
@@ -183,9 +182,7 @@ export function ControlBar(props: ControlBarProps) {
           </IconButton>
 
           <span className="ml-1 whitespace-nowrap text-sm tabular-nums text-muted-foreground sm:ml-2">
-            <span className="font-medium text-foreground">
-              {formatTime(currentTime, duration >= 3600)}
-            </span>
+            <span className="font-medium text-foreground">{formatTime(currentTime, duration >= 3600)}</span>
             <span className="mx-1.5 text-border">/</span>
             {formatTime(duration, duration >= 3600)}
           </span>
@@ -194,11 +191,7 @@ export function ControlBar(props: ControlBarProps) {
 
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
             <IconButton label={props.muted ? "Unmute" : "Mute"} onClick={props.onToggleMute}>
-              {props.muted || props.volume === 0 ? (
-                <VolumeX className="size-[18px]" />
-              ) : (
-                <Volume2 className="size-[18px]" />
-              )}
+              {props.muted || props.volume === 0 ? <VolumeX className="size-[18px]" /> : <Volume2 className="size-[18px]" />}
             </IconButton>
             <Slider
               className="w-16 sm:w-24"
@@ -211,74 +204,42 @@ export function ControlBar(props: ControlBarProps) {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-1 lg:ml-auto lg:flex-nowrap">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <MenuButton
-                label="Captions and subtitles"
-                active={props.activeSubtitle >= 0}
-                icon={<Captions className="size-[18px]" />}
-              >
-                <span className="hidden xl:inline">
-                  {props.activeSubtitle >= 0 ? "Captions on" : "Captions off"}
-                </span>
-              </MenuButton>
+              <MenuButton label="Captions and subtitles" active={props.activeSubtitle >= 0} icon={<Captions className="size-[18px]" />} />
             </DropdownMenuTrigger>
             <CinemaMenuContent align="end">
               <DropdownMenuLabel>Subtitles</DropdownMenuLabel>
-              <DropdownMenuCheckboxItem
-                checked={props.activeSubtitle === -1}
-                onCheckedChange={() => props.onSubtitle(-1)}
-              >
+              <DropdownMenuCheckboxItem checked={props.activeSubtitle === -1} onCheckedChange={() => props.onSubtitle(-1)}>
                 Off
               </DropdownMenuCheckboxItem>
               {props.subtitles.map((track, index) => (
-                <DropdownMenuCheckboxItem
-                  key={track.id}
-                  checked={props.activeSubtitle === index}
-                  onCheckedChange={() => props.onSubtitle(index)}
-                >
+                <DropdownMenuCheckboxItem key={track.id} checked={props.activeSubtitle === index} onCheckedChange={() => props.onSubtitle(index)}>
                   {track.label} · {track.cues} cues
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
-              <MenuAction onClick={() => subInput.current?.click()}>
-                Load .srt, .vtt, or .ass…
-              </MenuAction>
+              <MenuAction onClick={() => subInput.current?.click()}>Load .srt, .vtt, or .ass…</MenuAction>
             </CinemaMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <MenuButton label="Audio track" icon={<AudioLines className="size-[18px]" />}>
-                <span className="hidden max-w-40 truncate xl:inline">
-                  {recovery?.busy
-                    ? `Recovering ${Math.round(recovery.ratio * 100)}%${recovery.etaLabel ? ` · ${recovery.etaLabel}` : ""}`
-                    : (activeAudio?.label ?? "Audio")}
-                </span>
-              </MenuButton>
+              <MenuButton label={recovery?.busy ? `Audio recovery ${Math.round(recovery.ratio * 100)}%` : `Audio track: ${activeAudio?.label ?? "Audio"}`} icon={<AudioLines className="size-[18px]" />} />
             </DropdownMenuTrigger>
             <CinemaMenuContent align="end">
               <DropdownMenuLabel>Audio tracks</DropdownMenuLabel>
               {props.audioTracks.length === 0 ? (
                 <p className="max-w-64 px-2 py-2 text-sm leading-relaxed text-muted-foreground">
-                  This browser does not expose separate audio tracks for this file. Chromium exposes
-                  them most often. Safari and Firefox usually do not.
+                  This browser does not expose separate audio tracks for this file. Chromium exposes them most often. Safari and Firefox usually do not.
                 </p>
               ) : (
                 props.audioTracks.map((track) => (
-                  <DropdownMenuCheckboxItem
-                    key={track.id}
-                    checked={track.enabled}
-                    onCheckedChange={() => props.onAudioTrack(track.id)}
-                  >
+                  <DropdownMenuCheckboxItem key={track.id} checked={track.enabled} onCheckedChange={() => props.onAudioTrack(track.id)}>
                     <span className="flex flex-col gap-0.5">
-                      <span>
-                        {track.label} {track.language && `(${track.language})`}
-                      </span>
-                      {track.detail && (
-                        <span className="text-xs text-muted-foreground">{track.detail}</span>
-                      )}
+                      <span>{track.label} {track.language && `(${track.language})`}</span>
+                      {track.detail && <span className="text-xs text-muted-foreground">{track.detail}</span>}
                     </span>
                   </DropdownMenuCheckboxItem>
                 ))
@@ -287,9 +248,7 @@ export function ControlBar(props: ControlBarProps) {
                 <>
                   <DropdownMenuSeparator />
                   <MenuAction disabled={recovery?.busy} onClick={props.onRecoverAudio}>
-                    {recovery?.busy
-                      ? `Recovering audio · ${Math.round(recovery.ratio * 100)}%`
-                      : "Recover audio track"}
+                    {recovery?.busy ? `Recovering audio · ${Math.round(recovery.ratio * 100)}%` : "Recover audio track"}
                   </MenuAction>
                 </>
               )}
@@ -298,18 +257,12 @@ export function ControlBar(props: ControlBarProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <MenuButton label="Playback speed" icon={<Gauge className="size-[18px]" />}>
-                {props.rate}×
-              </MenuButton>
+              <MenuButton label="Playback speed" icon={<Gauge className="size-[18px]" />}>{props.rate}×</MenuButton>
             </DropdownMenuTrigger>
             <CinemaMenuContent align="end">
               <DropdownMenuLabel>Playback speed</DropdownMenuLabel>
               {RATES.map((rate) => (
-                <DropdownMenuCheckboxItem
-                  key={rate}
-                  checked={props.rate === rate}
-                  onCheckedChange={() => props.onRate(rate)}
-                >
+                <DropdownMenuCheckboxItem key={rate} checked={props.rate === rate} onCheckedChange={() => props.onRate(rate)}>
                   {rate}×
                 </DropdownMenuCheckboxItem>
               ))}
@@ -323,19 +276,12 @@ export function ControlBar(props: ControlBarProps) {
             <CinemaMenuContent align="end">
               <DropdownMenuLabel>Frame</DropdownMenuLabel>
               {FIT_MODES.map((mode) => (
-                <DropdownMenuCheckboxItem
-                  key={mode.key}
-                  checked={props.fit === mode.key}
-                  onCheckedChange={() => props.onFit(mode.key)}
-                >
+                <DropdownMenuCheckboxItem key={mode.key} checked={props.fit === mode.key} onCheckedChange={() => props.onFit(mode.key)}>
                   {mode.label}
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={props.statsVisible}
-                onCheckedChange={props.onToggleStats}
-              >
+              <DropdownMenuCheckboxItem checked={props.statsVisible} onCheckedChange={props.onToggleStats}>
                 Stats overlay
               </DropdownMenuCheckboxItem>
             </CinemaMenuContent>
@@ -371,13 +317,8 @@ export function ControlBar(props: ControlBarProps) {
   );
 }
 
-function CinemaMenuContent({
-  className,
-  sideOffset = 8,
-  ...props
-}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>) {
-  const fullscreenContainer =
-    typeof document === "undefined" ? undefined : (document.fullscreenElement ?? undefined);
+function CinemaMenuContent({ className, sideOffset = 8, ...props }: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>) {
+  const fullscreenContainer = typeof document === "undefined" ? undefined : (document.fullscreenElement ?? undefined);
 
   return (
     <DropdownMenuPrimitive.Portal container={fullscreenContainer}>
@@ -395,25 +336,23 @@ function CinemaMenuContent({
   );
 }
 
-function MenuButton({
-  label,
-  icon,
-  active = false,
-  children,
-}: {
+type MenuButtonProps = ComponentProps<"button"> & {
   label: string;
   icon: ReactNode;
   active?: boolean;
-  children?: ReactNode;
-}) {
+};
+
+function MenuButton({ label, icon, active = false, children, className, ...buttonProps }: MenuButtonProps) {
   return (
     <button
+      {...buttonProps}
       type="button"
       aria-label={label}
       title={label}
       className={cn(
         "flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active && "bg-primary/10 text-primary",
+        className,
       )}
     >
       {icon}
@@ -422,11 +361,7 @@ function MenuButton({
   );
 }
 
-function MenuAction({
-  children,
-  className,
-  ...props
-}: ComponentPropsWithoutRef<"button">) {
+function MenuAction({ children, className, ...props }: ComponentPropsWithoutRef<"button">) {
   return (
     <button
       type="button"
@@ -441,17 +376,7 @@ function MenuAction({
   );
 }
 
-function IconButton({
-  label,
-  onClick,
-  children,
-  emphasis = false,
-}: {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-  emphasis?: boolean;
-}) {
+function IconButton({ label, onClick, children, emphasis = false }: { label: string; onClick: () => void; children: ReactNode; emphasis?: boolean }) {
   return (
     <button
       type="button"
