@@ -11,34 +11,11 @@ const MODES: { id: ViewMode; label: string; Icon: typeof List }[] = [
 ];
 
 /** Compact segmented control for switching between list and tile layouts. */
-export function ViewToggle({
-  value,
-  onChange,
-  className,
-}: {
-  value: ViewMode;
-  onChange: (mode: ViewMode) => void;
-  className?: string;
-}) {
+export function ViewToggle({ value, onChange, className }: { value: ViewMode; onChange: (mode: ViewMode) => void; className?: string }) {
   return (
-    <div
-      role="group"
-      aria-label="View layout"
-      className={cn("flex shrink-0 items-center rounded-sm border border-hairline", className)}
-    >
+    <div role="group" aria-label="View layout" className={cn("flex shrink-0 items-center rounded-full border border-hairline bg-inset p-0.5", className)}>
       {MODES.map(({ id, label, Icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => onChange(id)}
-          aria-label={label}
-          title={label}
-          aria-pressed={value === id}
-          className={cn(
-            "p-1.5 text-muted-foreground transition-colors first:rounded-l-sm last:rounded-r-sm hover:text-foreground",
-            value === id && "bg-inset text-primary",
-          )}
-        >
+        <button key={id} type="button" onClick={() => onChange(id)} aria-label={label} title={label} aria-pressed={value === id} className={cn("flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors [@media(pointer:coarse)]:size-11 hover:text-foreground", value === id && "bg-background text-primary shadow-sm")}>
           <Icon className="size-3.5" aria-hidden />
         </button>
       ))}
