@@ -4,20 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", "Manrope", ui-sans-serif, sans-serif;
@@ -67,120 +53,240 @@
   --color-inset: var(--inset);
 }
 
+/* Quiet cinema: warm graphite, ivory type, and a restrained brass accent.
+   Semantic tokens also restyle existing menus, dialogs, and media overlays. */
 :root {
-  /*
-   * Charcoal & Ember — machined instrument panel.
-   * #1a1a1a base, #2d2d2d panel, #4a4a4a hairline, #e85d3a single ember accent.
-   */
-  --radius: 0.25rem;
-  --background: oklch(0.203 0 0);
-  --foreground: oklch(0.855 0 0);
-  --card: oklch(0.283 0 0);
-  --card-foreground: oklch(0.9 0 0);
-  --popover: oklch(0.253 0 0);
-  --popover-foreground: oklch(0.9 0 0);
-  --primary: oklch(0.643 0.166 38.5);
-  --primary-foreground: oklch(0.99 0.005 38);
-  --secondary: oklch(0.283 0 0);
-  --secondary-foreground: oklch(0.9 0 0);
-  --muted: oklch(0.283 0 0);
-  --muted-foreground: oklch(0.62 0 0);
-  --accent: oklch(0.33 0 0);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.61 0.2 25);
-  --destructive-foreground: oklch(0.97 0.01 25);
-  --border: oklch(0.402 0 0);
-  --input: oklch(0.402 0 0);
-  --ring: oklch(0.643 0.166 38.5);
-  --chart-1: oklch(0.643 0.166 38.5);
-  --chart-2: oklch(0.75 0.12 160);
-  --chart-3: oklch(0.7 0.09 240);
-  --chart-4: oklch(0.82 0.13 85);
-  --chart-5: oklch(0.68 0.14 330);
-  --sidebar: oklch(0.243 0 0);
-  --sidebar-foreground: oklch(0.9 0 0);
-  --sidebar-primary: oklch(0.643 0.166 38.5);
-  --sidebar-primary-foreground: oklch(0.99 0.005 38);
-  --sidebar-accent: oklch(0.3 0 0);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(0.402 0 0);
-  --sidebar-ring: oklch(0.643 0.166 38.5);
-  /* Machined structure tokens. */
-  --hairline: oklch(0.402 0 0);
-  --panel: oklch(0.283 0 0);
-  --inset: oklch(0.163 0 0);
-  /* Burned-in caption rendering (always light-on-dark, independent of theme). */
+  color-scheme: dark;
+  --radius: 0.75rem;
+  --background: oklch(0.17 0.006 80);
+  --foreground: oklch(0.94 0.014 80);
+  --card: oklch(0.215 0.007 80);
+  --card-foreground: oklch(0.94 0.014 80);
+  --popover: oklch(0.25 0.008 80);
+  --popover-foreground: oklch(0.94 0.014 80);
+  --primary: oklch(0.81 0.065 80);
+  --primary-foreground: oklch(0.2 0.019 80);
+  --secondary: oklch(0.27 0.009 80);
+  --secondary-foreground: oklch(0.91 0.014 80);
+  --muted: oklch(0.275 0.007 80);
+  --muted-foreground: oklch(0.7 0.014 80);
+  --accent: oklch(0.31 0.013 80);
+  --accent-foreground: oklch(0.95 0.014 80);
+  --destructive: oklch(0.76 0.13 28);
+  --destructive-foreground: oklch(0.18 0.01 28);
+  --border: oklch(0.335 0.009 80);
+  --input: oklch(0.45 0.012 80);
+  --ring: oklch(0.81 0.065 80);
+  --chart-1: oklch(0.81 0.065 80);
+  --chart-2: oklch(0.76 0.085 156);
+  --chart-3: oklch(0.76 0.068 237);
+  --chart-4: oklch(0.84 0.085 86);
+  --chart-5: oklch(0.76 0.065 326);
+  --sidebar: oklch(0.215 0.007 80);
+  --sidebar-foreground: oklch(0.94 0.014 80);
+  --sidebar-primary: oklch(0.81 0.065 80);
+  --sidebar-primary-foreground: oklch(0.2 0.019 80);
+  --sidebar-accent: oklch(0.31 0.013 80);
+  --sidebar-accent-foreground: oklch(0.95 0.014 80);
+  --sidebar-border: oklch(0.335 0.009 80);
+  --sidebar-ring: oklch(0.81 0.065 80);
+  --hairline: oklch(0.335 0.009 80);
+  --panel: oklch(0.215 0.007 80);
+  --inset: oklch(0.185 0.007 80);
   --subtitle-foreground: oklch(1 0 0);
   --subtitle-backdrop: oklch(0 0 0 / 62%);
-}
-
-.dark {
-  /* Single machined charcoal theme — dark is the canonical surface. */
-  color-scheme: dark;
+  --cinema-shadow: 0 18px 50px oklch(0 0 0 / 14%);
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
+  * { border-color: var(--border); }
+  html { background: var(--background); }
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-
-  h1,
-  h2,
-  h3 {
-    font-family: var(--font-display);
-  }
+  h1, h2, h3 { font-family: var(--font-display); }
+  button:not(:disabled), summary { cursor: pointer; }
+  button, a, input, summary { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+  ::selection { background: var(--primary); color: var(--primary-foreground); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 }
 
-/* Small-caps instrument label: the recurring panel-heading treatment. */
+/* Retained names keep the established player and overlay contracts intact. */
 @utility label-machined {
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  text-transform: none;
 }
-
 @utility readout {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
-
-/* Machined panel: charcoal face with a hairline rule, no soft shadow bloom. */
 @utility panel-machined {
   background-color: var(--panel);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--cinema-shadow);
 }
-
-/* Notch/rounded-corner aware insets for anything pinned to a screen edge. */
 @utility pad-safe {
   padding-left: max(0.75rem, env(safe-area-inset-left));
   padding-right: max(0.75rem, env(safe-area-inset-right));
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
-
 @utility inset-safe {
   top: env(safe-area-inset-top);
   bottom: env(safe-area-inset-bottom);
   left: env(safe-area-inset-left);
   right: env(safe-area-inset-right);
 }
+@utility offset-safe-top { margin-top: env(safe-area-inset-top); }
+@utility offset-safe-left { margin-left: env(safe-area-inset-left); }
+@utility offset-safe-right { margin-right: env(safe-area-inset-right); }
 
-@utility offset-safe-top {
-  margin-top: env(safe-area-inset-top);
+.cinema-app {
+  min-height: 100svh;
+  background: radial-gradient(ellipse at 12% 0%, oklch(0.3 0.03 80 / 24%), transparent 42%);
 }
-
-@utility offset-safe-left {
-  margin-left: env(safe-area-inset-left);
+.cinema-shell {
+  width: min(100%, 1536px);
+  margin-inline: auto;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
+.cinema-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.5rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.cinema-brand { display: flex; align-items: center; gap: 0.8rem; min-width: 0; }
+.cinema-brand-mark { color: var(--primary); width: 2.25rem; height: 2.25rem; flex-shrink: 0; }
+.cinema-wordmark { font-family: var(--font-display); font-size: 0.94rem; font-weight: 500; letter-spacing: 0.12em; }
+.cinema-wordmark span { color: var(--primary); }
+.cinema-brand-caption { margin-top: 0.25rem; color: var(--muted-foreground); font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.cinema-header-actions { display: flex; align-items: center; gap: 1rem; }
+.cinema-local-badge { display: none; align-items: center; gap: 0.45rem; font-size: 0.75rem; color: var(--muted-foreground); }
+.cinema-quiet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.85rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  transition: background-color 160ms, color 160ms, border-color 160ms;
+}
+.cinema-quiet-button:hover { background: var(--panel); color: var(--foreground); border-color: var(--input); }
+.cinema-intro { display: flex; flex-direction: column; gap: 1rem; padding-block: clamp(2rem, 4vw, 3.75rem); }
+.cinema-eyebrow { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.9rem; color: var(--primary); font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; }
+.cinema-eyebrow::before { content: ""; width: 1.6rem; height: 1px; background: currentColor; }
+.cinema-intro h1 { font-size: clamp(1.8rem, 3.7vw, 3.35rem); font-weight: 400; line-height: 1.18; letter-spacing: -0.045em; text-wrap: balance; }
+.cinema-intro h1 em { font-family: Georgia, "Times New Roman", serif; color: var(--primary); font-weight: 400; letter-spacing: -0.045em; }
+.cinema-intro-copy { max-width: 21rem; color: var(--muted-foreground); font-size: 0.875rem; line-height: 1.8; }
+.cinema-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--hairline); color: var(--muted-foreground); font-size: 0.75rem; line-height: 1.7; }
+.cinema-footer button { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.75rem; border-radius: 0.5rem; color: var(--foreground); }
+.cinema-footer button:hover { color: var(--primary); }
+.cinema-skip { position: fixed; z-index: 100; top: 0.75rem; left: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.75rem; background: var(--primary); color: var(--primary-foreground); transform: translateY(-200%); }
+.cinema-skip:focus { transform: translateY(0); }
+.cinema-loading { min-height: 25rem; display: grid; place-items: center; border: 1px solid var(--hairline); border-radius: 1.5rem; background: var(--panel); color: var(--muted-foreground); font-size: 0.875rem; }
 
-@utility offset-safe-right {
-  margin-right: env(safe-area-inset-right);
+/* Presentation adapter for MediaPlayer's existing stage/rail structure.
+   It deliberately leaves media state, event handlers, and fullscreen markup alone.
+   Keep these child selectors in sync if the MediaPlayer render tree changes. */
+.cinema-player > div { gap: 1.5rem; }
+.cinema-player > div > .grid { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.5rem; }
+.cinema-player > div > .grid > div { grid-column: auto; min-width: 0; }
+.cinema-player > div > .grid > div:first-child:not(:fullscreen) { gap: 0.9rem; }
+.cinema-player > div > .grid > div:last-child { gap: 1rem; }
+.cinema-player > div > .grid > div:last-child > .cinema-intake { order: 0; }
+.cinema-player > div > .grid > div:last-child > .cinema-playlist { order: 1; }
+.cinema-player > div > .grid > div:last-child > section:not(.cinema-playlist) { order: 2; }
+.cinema-player > div > .grid > div:first-child:not(:fullscreen) > .aspect-video {
+  border-radius: 1.5rem;
+  border-color: var(--hairline);
+  box-shadow: 0 24px 70px oklch(0 0 0 / 22%);
+}
+/* Artwork exists only in the empty state. Never layer a tint over the video. */
+.cinema-player .aspect-video:has(> .border-dashed) {
+  background: radial-gradient(ellipse at 50% 35%, oklch(0.31 0.027 80 / 65%), transparent 65%), var(--inset);
+  touch-action: pan-y;
+  min-height: 18rem;
+}
+.cinema-player .aspect-video > .border-dashed {
+  isolation: isolate;
+  inset: 0;
+  border: 0;
+  gap: 1.1rem;
+  padding: 1.5rem;
+}
+.cinema-player .aspect-video > .border-dashed::before,
+.cinema-player .aspect-video > .border-dashed::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: min(70%, 27rem);
+  aspect-ratio: 1;
+  border: 1px solid oklch(0.68 0.04 80 / 12%);
+  border-radius: 50%;
+  transform: rotate(-32deg) scaleY(0.62);
+  pointer-events: none;
+}
+.cinema-player .aspect-video > .border-dashed::after { width: min(90%, 36rem); transform: rotate(-32deg) scaleY(0.62); }
+.cinema-player .aspect-video > .border-dashed > span {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.3rem;
+  border-color: oklch(0.81 0.065 80 / 28%);
+  background: linear-gradient(145deg, oklch(0.45 0.025 80 / 38%), oklch(0.22 0.012 80 / 70%));
+  box-shadow: 0 8px 35px oklch(0 0 0 / 18%), inset 0 1px 0 oklch(1 0 0 / 7%);
+}
+.cinema-player .aspect-video > .border-dashed > span > span { width: 1.15rem; height: 1.3rem; margin-left: 0.25rem; clip-path: polygon(10% 0, 100% 50%, 10% 100%); background: var(--primary); }
+.cinema-player .aspect-video > .border-dashed > .label-machined { color: var(--foreground); font-family: var(--font-display); font-size: clamp(1rem, 2vw, 1.4rem); font-weight: 400; letter-spacing: -0.025em; }
+.cinema-player .aspect-video > .border-dashed > .readout { max-width: 24rem; font-family: var(--font-sans); color: var(--muted-foreground); font-size: 0.75rem; line-height: 1.75; font-style: normal; text-wrap: balance; }
+/* Secondary metrics remain available, with less visual weight than intake. */
+.cinema-player > div > .grid > div:last-child > section:not(.cinema-playlist) { background: transparent; box-shadow: none; }
+.cinema-player > div > .grid > div:last-child > section:not(.cinema-playlist) .readout { font-family: var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; font-size: 0.75rem; }
+.cinema-player > div > .grid > div:last-child > section:not(.cinema-playlist) button { min-height: 2rem; padding-inline: 0.6rem; }
+.cinema-intake input:not([type="file"]) { border-color: var(--input); }
+.cinema-intake input:not([type="file"]):focus { border-color: var(--primary); }
+.cinema-controls { box-shadow: var(--cinema-shadow); }
+.cinema-controls input[type="range"] { touch-action: pan-y; }
+.cinema-player :fullscreen { background: oklch(0 0 0); }
+.cinema-player :fullscreen > div:first-child { border-radius: 0; }
+.cinema-player :fullscreen .cinema-controls { background: oklch(0.2 0.006 80 / 92%); }
+
+@media (min-width: 640px) {
+  .cinema-shell { padding: 1.5rem 2rem 2rem; }
+  .cinema-local-badge { display: flex; }
+  .cinema-intro { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 2rem; }
+  .cinema-intro-copy { max-width: 18rem; }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .cinema-player > div > .grid > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .cinema-player > div > .grid > div:last-child > .cinema-intake { grid-row: span 2; }
+}
+@media (min-width: 1200px) {
+  .cinema-shell { padding-inline: 3rem; }
+  .cinema-player > div > .grid { grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; }
+}
+@media (min-width: 1440px) {
+  .cinema-player > div > .grid { grid-template-columns: minmax(0, 1fr) 360px; gap: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .cinema-controls input[type="range"] { opacity: 1; appearance: auto; }
+  .cinema-player .aspect-video > .border-dashed::before,
+  .cinema-player .aspect-video > .border-dashed::after { display: none; }
 }
