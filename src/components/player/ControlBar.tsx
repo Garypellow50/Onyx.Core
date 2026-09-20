@@ -24,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Slider } from "@/components/ui/slider";
 import { formatTime } from "@/lib/player/format";
 import { cn } from "@/lib/utils";
 import type { SubtitleTrack } from "@/lib/player/subtitles";
@@ -36,7 +35,7 @@ export interface AudioTrackInfo {
   label: string;
   language: string;
   enabled: boolean;
-  /** Extra line shown under the label, e.g. "recovered · AAC 192 kbps". */
+  /** Extra line shown under the label, for example, "recovered · AAC 192 kbps". */
   detail?: string;
 }
 
@@ -61,7 +60,7 @@ export interface ControlBarProps {
   subtitles: SubtitleTrack[];
   activeSubtitle: number;
   audioTracks: AudioTrackInfo[];
-  /** Live audio-recovery state, or null when no pass is running/finished. */
+  /** Live audio-recovery state, or null when no pass is running or finished. */
   recovery?: { busy: boolean; ratio: number; etaLabel: string | null } | null;
   canRecoverAudio?: boolean;
   statsVisible: boolean;
@@ -94,7 +93,10 @@ export function ControlBar(props: ControlBarProps) {
     ? Math.min(duration, Math.max(0, props.currentTime))
     : 0;
   const progress = hasDuration ? (currentTime / duration) * 100 : 0;
-  const activeAudio = props.audioTracks.find((t) => t.enabled);
+  const volume = Number.isFinite(props.volume)
+    ? Math.min(1, Math.max(0, props.volume))
+    : 0;
+  const activeAudio = props.audioTracks.find((track) => track.enabled);
   const recovery = props.recovery;
 
   function clampTime(value: number) {
@@ -104,20 +106,37 @@ export function ControlBar(props: ControlBarProps) {
   function positionFromEvent(clientX: number): number {
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0 || !hasDuration) return 0;
+
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
     return ratio * duration;
   }
 
   function seekFromKeyboard(event: React.KeyboardEvent<HTMLInputElement>) {
     if (!hasDuration) return;
-    const delta = event.key === "ArrowLeft" ? -5 : event.key === "ArrowRight" ? 5 : event.key === "PageDown" ? -10 : event.key === "PageUp" ? 10 : null;
+
+    const delta =
+      event.key === "ArrowLeft"
+        ? -5
+        : event.key === "ArrowRight"
+          ? 5
+          : event.key === "PageDown"
+            ? -10
+            : event.key === "PageUp"
+              ? 10
+              : null;
+
     if (delta !== null) {
       event.preventDefault();
       props.onSeek(clampTime(currentTime + delta));
-    } else if (event.key === "Home") {
+      return;
+    }
+
+    if (event.key === "Home") {
       event.preventDefault();
       props.onSeek(0);
-    } else if (event.key === "End") {
+    }
+
+    if (event.key === "End") {
       event.preventDefault();
       props.onSeek(duration);
     }
@@ -146,10 +165,13 @@ export function ControlBar(props: ControlBarProps) {
               }}
             />
           ))}
-          <span className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${progress}%` }} />
+          <span
+            className="absolute inset-y-0 left-0 bg-primary"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         <span
-          className="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 border-2 border-primary bg-foreground shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_50%,transparent)] transition-opacity"
+          className="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 border-2 border-primary bg-foreground shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_50%,transparent)]"
           style={{ left: `${progress}%` }}
         />
         <input
@@ -160,7 +182,11 @@ export function ControlBar(props: ControlBarProps) {
           value={currentTime}
           disabled={!hasDuration}
           aria-label="Seek"
-          aria-valuetext={hasDuration ? `${formatTime(currentTime, duration >= 3600)} of ${formatTime(duration, duration >= 3600)}` : "Seek unavailable"}
+          aria-valuetext={
+            hasDuration
+              ? `${formatTime(currentTime, duration >= 3600)} of ${formatTime(duration, duration >= 3600)}`
+              : "Seek unavailable"
+          }
           className="absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0 disabled:cursor-not-allowed"
           onChange={(event) => props.onSeek(clampTime(Number(event.target.value)))}
           onKeyDown={seekFromKeyboard}
@@ -176,7 +202,12 @@ export function ControlBar(props: ControlBarProps) {
       </div>
 
       <div className="onyx-transport flex min-w-0 flex-wrap items-center gap-0.5 sm:gap-1">
-        <IconButton label={props.playing ? "Pause" : "Play"} onClick={props.onTogglePlay} pressed={props.playing} className="onyx-play-button">
+        <IconButton
+          label={props.playing ? "Pause" : "Play"}
+          onClick={props.onTogglePlay}
+          pressed={props.playing}
+          className="onyx-play-button"
+        >
           {props.playing ? <Pause className="size-5" /> : <Play className="size-5" />}
         </IconButton>
         <IconButton label="Back 10 seconds" onClick={() => props.onSkip(-10)}>
@@ -189,82 +220,251 @@ export function ControlBar(props: ControlBarProps) {
         <span className="readout ml-1 flex items-center gap-1 text-[10px] sm:gap-1.5 sm:text-[11px]">
           <span className="text-primary">{formatTime(currentTime, duration >= 3600)}</span>
           <span className="text-hairline">/</span>
-          <span className="text-muted-foreground">{hasDuration ? formatTime(duration, duration >= 3600) : "--:--"}</span>
+          <span className="text-muted-foreground">
+            {hasDuration ? formatTime(duration, duration >= 3600) : "--:--"}
+          </span>
         </span>
 
         <span className="mx-2 hidden h-3 w-px bg-hairline sm:block" aria-hidden />
 
         <div className="flex min-w-0 items-center gap-1.5">
-          <IconButton label={props.muted ? "Unmute" : "Mute"} onClick={props.onToggleMute} pressed={props.muted}>
-            {props.muted || props.volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          <IconButton
+            label={props.muted ? "Unmute" : "Mute"}
+            onClick={props.onToggleMute}
+            pressed={props.muted}
+          >
+            {props.muted || volume === 0 ? (
+              <VolumeX className="size-4" />
+            ) : (
+              <Volume2 className="size-4" />
+            )}
           </IconButton>
-          <Slider
-            className="w-14 sm:w-20"
-            value={[props.muted ? 0 : Math.round(props.volume * 100)]}
+          <input
+            type="range"
+            min={0}
             max={100}
             step={1}
-            onValueChange={(value) => props.onVolume((value[0] ?? 0) / 100)}
+            value={props.muted ? 0 : Math.round(volume * 100)}
+            onChange={(event) => props.onVolume(Number(event.target.value) / 100)}
             aria-label="Volume level"
+            className="h-10 w-14 accent-primary sm:w-20"
           />
         </div>
 
         <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-0.5 sm:ml-auto sm:w-auto sm:flex-nowrap sm:gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground" aria-label="Captions and subtitles">
+              <button
+                type="button"
+                className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Captions and subtitles"
+              >
                 <Captions className={cn("size-4", props.activeSubtitle >= 0 && "text-primary")} />
                 CC [{props.activeSubtitle >= 0 ? "ON" : "OFF"}]
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Subtitles</DropdownMenuLabel>
-              <DropdownMenuCheckboxItem checked={props.activeSubtitle === -1} onCheckedChange={() => props.onSubtitle(-1)}>Off</DropdownMenuCheckboxItem>
-              {props.subtitles.map((track, index) => <DropdownMenuCheckboxItem key={track.id} checked={props.activeSubtitle === index} onCheckedChange={() => props.onSubtitle(index)}>{track.label} · {track.cues} cues</DropdownMenuCheckboxItem>)}
+              <DropdownMenuCheckboxItem
+                checked={props.activeSubtitle === -1}
+                onCheckedChange={() => props.onSubtitle(-1)}
+              >
+                Off
+              </DropdownMenuCheckboxItem>
+              {props.subtitles.map((track, index) => (
+                <DropdownMenuCheckboxItem
+                  key={track.id}
+                  checked={props.activeSubtitle === index}
+                  onCheckedChange={() => props.onSubtitle(index)}
+                >
+                  {track.label} · {track.cues} cues
+                </DropdownMenuCheckboxItem>
+              ))}
               <DropdownMenuSeparator />
-              <button type="button" onClick={() => subInput.current?.click()} className="w-full px-2 py-2 text-left text-sm hover:bg-muted">Load .srt / .vtt / .ass…</button>
+              <button
+                type="button"
+                onClick={() => subInput.current?.click()}
+                className="w-full px-2 py-2 text-left text-sm hover:bg-muted"
+              >
+                Load .srt / .vtt / .ass…
+              </button>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground" aria-label="Audio track">
+              <button
+                type="button"
+                className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Audio track"
+              >
                 <AudioLines className="size-4" />
-                {recovery?.busy ? `AUDIO ${Math.round(recovery.ratio * 100)}%${recovery.etaLabel ? ` · ${recovery.etaLabel}` : ""}` : (activeAudio?.label ?? "Audio")}
+                {recovery?.busy
+                  ? `AUDIO ${Math.round(recovery.ratio * 100)}%${recovery.etaLabel ? ` · ${recovery.etaLabel}` : ""}`
+                  : (activeAudio?.label ?? "Audio")}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Audio tracks</DropdownMenuLabel>
-              {props.audioTracks.length === 0 ? <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">This browser is not exposing separate audio tracks for this file. Chromium exposes them most often; Safari and Firefox usually do not.</p> : props.audioTracks.map((track) => <DropdownMenuCheckboxItem key={track.id} checked={track.enabled} onCheckedChange={() => props.onAudioTrack(track.id)}><span className="flex flex-col"><span>{track.label} {track.language && `(${track.language})`}</span>{track.detail && <span className="readout text-[10px] text-muted-foreground">{track.detail}</span>}</span></DropdownMenuCheckboxItem>)}
-              {props.canRecoverAudio && props.onRecoverAudio && <><DropdownMenuSeparator /><button type="button" disabled={recovery?.busy} onClick={props.onRecoverAudio} className="w-full px-2 py-2 text-left text-sm hover:bg-muted disabled:opacity-50">{recovery?.busy ? `Recovering audio — ${Math.round(recovery.ratio * 100)}%` : "Recover audio track (transcode pass)"}</button></>}
+              {props.audioTracks.length === 0 ? (
+                <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
+                  This browser is not exposing separate audio tracks for this file. Chromium exposes
+                  them most often; Safari and Firefox usually do not.
+                </p>
+              ) : (
+                props.audioTracks.map((track) => (
+                  <DropdownMenuCheckboxItem
+                    key={track.id}
+                    checked={track.enabled}
+                    onCheckedChange={() => props.onAudioTrack(track.id)}
+                  >
+                    <span className="flex flex-col">
+                      <span>
+                        {track.label} {track.language && `(${track.language})`}
+                      </span>
+                      {track.detail && (
+                        <span className="readout text-[10px] text-muted-foreground">
+                          {track.detail}
+                        </span>
+                      )}
+                    </span>
+                  </DropdownMenuCheckboxItem>
+                ))
+              )}
+              {props.canRecoverAudio && props.onRecoverAudio && (
+                <>
+                  <DropdownMenuSeparator />
+                  <button
+                    type="button"
+                    disabled={recovery?.busy}
+                    onClick={props.onRecoverAudio}
+                    className="w-full px-2 py-2 text-left text-sm hover:bg-muted disabled:opacity-50"
+                  >
+                    {recovery?.busy
+                      ? `Recovering audio, ${Math.round(recovery.ratio * 100)}%`
+                      : "Recover audio track (transcode pass)"}
+                  </button>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground" aria-label="Playback speed"><Gauge className="size-4" />{props.rate}x</button>
+              <button
+                type="button"
+                className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Playback speed"
+              >
+                <Gauge className="size-4" />
+                {props.rate}x
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end"><DropdownMenuLabel>Speed</DropdownMenuLabel>{RATES.map((rate) => <DropdownMenuCheckboxItem key={rate} checked={props.rate === rate} onCheckedChange={() => props.onRate(rate)}>{rate}x</DropdownMenuCheckboxItem>)}</DropdownMenuContent>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Speed</DropdownMenuLabel>
+              {RATES.map((rate) => (
+                <DropdownMenuCheckboxItem
+                  key={rate}
+                  checked={props.rate === rate}
+                  onCheckedChange={() => props.onRate(rate)}
+                >
+                  {rate}x
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground" aria-label="Frame fit"><Proportions className="size-4" /></button>
+              <button
+                type="button"
+                className="onyx-menu-trigger readout flex min-h-10 items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Frame fit"
+              >
+                <Proportions className="size-4" />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end"><DropdownMenuLabel>Frame</DropdownMenuLabel>{FIT_MODES.map((mode) => <DropdownMenuCheckboxItem key={mode.key} checked={props.fit === mode.key} onCheckedChange={() => props.onFit(mode.key)}>{mode.label}</DropdownMenuCheckboxItem>)}<DropdownMenuSeparator /><DropdownMenuCheckboxItem checked={props.statsVisible} onCheckedChange={props.onToggleStats}>Stats overlay</DropdownMenuCheckboxItem></DropdownMenuContent>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Frame</DropdownMenuLabel>
+              {FIT_MODES.map((mode) => (
+                <DropdownMenuCheckboxItem
+                  key={mode.key}
+                  checked={props.fit === mode.key}
+                  onCheckedChange={() => props.onFit(mode.key)}
+                >
+                  {mode.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={props.statsVisible}
+                onCheckedChange={props.onToggleStats}
+              >
+                Stats overlay
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
           </DropdownMenu>
 
-          <IconButton label={`Rotate (now ${props.rotation}°)`} onClick={props.onRotate} pressed={props.rotation !== 0}><RotateCw className={cn("size-4", props.rotation !== 0 && "text-primary")} /></IconButton>
-          <IconButton label="Picture in picture" onClick={props.onPictureInPicture}><PictureInPicture2 className="size-4" /></IconButton>
-          <IconButton label="Keyboard shortcuts" onClick={props.onShortcuts}><Keyboard className="size-4" /></IconButton>
-          <IconButton label="Fullscreen" onClick={props.onFullscreen}><Maximize className="size-4" /></IconButton>
+          <IconButton
+            label={`Rotate (now ${props.rotation}°)`}
+            onClick={props.onRotate}
+            pressed={props.rotation !== 0}
+          >
+            <RotateCw className={cn("size-4", props.rotation !== 0 && "text-primary")} />
+          </IconButton>
+          <IconButton label="Picture in picture" onClick={props.onPictureInPicture}>
+            <PictureInPicture2 className="size-4" />
+          </IconButton>
+          <IconButton label="Keyboard shortcuts" onClick={props.onShortcuts}>
+            <Keyboard className="size-4" />
+          </IconButton>
+          <IconButton label="Fullscreen" onClick={props.onFullscreen}>
+            <Maximize className="size-4" />
+          </IconButton>
         </div>
       </div>
 
-      <input ref={subInput} type="file" hidden accept=".srt,.vtt,.ass,.ssa" onChange={(event) => { const file = event.target.files?.[0]; if (file) props.onAddSubtitleFile(file); event.target.value = ""; }} />
+      <input
+        ref={subInput}
+        type="file"
+        hidden
+        accept=".srt,.vtt,.ass,.ssa"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) props.onAddSubtitleFile(file);
+          event.target.value = "";
+        }}
+      />
     </div>
   );
 }
 
-function IconButton({ label, onClick, children, pressed, className }: { label: string; onClick: () => void; children: React.ReactNode; pressed?: boolean; className?: string }) {
-  return <button type="button" onClick={onClick} title={label} aria-label={label} aria-pressed={pressed} className={cn("onyx-control-button flex size-10 items-center justify-center rounded-sm text-foreground transition-colors hover:text-primary", className)}>{children}</button>;
+function IconButton({
+  label,
+  onClick,
+  children,
+  pressed,
+  className,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  pressed?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      {...(pressed === undefined ? {} : { "aria-pressed": pressed })}
+      className={cn(
+        "onyx-control-button flex size-10 items-center justify-center rounded-sm text-foreground transition-colors hover:text-primary",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
 }
