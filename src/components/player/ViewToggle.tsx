@@ -24,7 +24,7 @@ export function ViewToggle({
     <div
       role="group"
       aria-label="View layout"
-      className={cn("flex shrink-0 items-center rounded-sm border border-hairline", className)}
+      className={cn("flex shrink-0 items-center rounded-xl border border-hairline bg-inset p-0.5", className)}
     >
       {MODES.map(({ id, label, Icon }) => (
         <button
@@ -35,11 +35,11 @@ export function ViewToggle({
           title={label}
           aria-pressed={value === id}
           className={cn(
-            "p-1.5 text-muted-foreground transition-colors first:rounded-l-sm last:rounded-r-sm hover:text-foreground",
-            value === id && "bg-inset text-primary",
+            "flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            value === id && "bg-background text-primary shadow-sm",
           )}
         >
-          <Icon className="size-3.5" aria-hidden />
+          <Icon className="size-4" aria-hidden />
         </button>
       ))}
     </div>

@@ -24,123 +24,121 @@ const LEVEL_COLOR: Record<LogLevel, string> = {
 
 export function LogPanel() {
   const entries = useLog();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<LogLevel | "all">("all");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   const visible = useMemo(
-    () => (filter === "all" ? entries : entries.filter((e) => e.level === filter)),
+    () => (filter === "all" ? entries : entries.filter((entry) => entry.level === filter)),
     [entries, filter],
   );
+  const errorCount = entries.filter((entry) => entry.level === "error").length;
+  const panelId = "engineering-log-content";
 
-  const errorCount = entries.filter((e) => e.level === "error").length;
-
-  function copyAll() {
-    void navigator.clipboard.writeText(exportLog());
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(exportLog());
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
   }
 
   function download() {
     const blob = new Blob([exportLog()], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `player-log-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.txt`;
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `player-log-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.txt`;
+    anchor.click();
     URL.revokeObjectURL(url);
   }
 
   return (
-    <section className="min-w-0 rounded-sm border border-hairline bg-background">
-      <header className="flex flex-wrap items-center gap-2 border-b border-hairline bg-panel px-3 py-2 sm:px-4">
+    <section className="cinema-log min-w-0 overflow-hidden rounded-2xl border border-hairline bg-background">
+      <header className={cn("flex items-center gap-2 bg-panel px-3 py-2.5 sm:px-4", open && "border-b border-hairline")}>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="label-machined flex items-center gap-2 text-foreground"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl px-1 text-left text-[13px] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Terminal className="size-3.5 text-primary" aria-hidden />
-          Engineering log
-          <span className="readout rounded-sm border border-hairline px-1.5 py-0.5 text-[10px] font-normal tracking-normal text-muted-foreground">
+          <Terminal className="size-4 shrink-0 text-primary" aria-hidden />
+          <span className="truncate">Engineering log</span>
+          <span className="rounded-lg border border-hairline px-2 py-0.5 text-xs font-normal text-muted-foreground">
             {entries.length}
           </span>
           {errorCount > 0 && (
-            <span className="readout rounded-sm border border-destructive/60 px-1.5 py-0.5 text-[10px] font-normal tracking-normal text-destructive">
-              {errorCount} err
+            <span className="rounded-lg border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-xs font-normal text-destructive">
+              {errorCount} error{errorCount === 1 ? "" : "s"}
             </span>
           )}
           {open ? (
-            <ChevronDown className="size-3.5 text-muted-foreground" aria-hidden />
+            <ChevronUp className="ml-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
           ) : (
-            <ChevronUp className="size-3.5 text-muted-foreground" aria-hidden />
+            <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
           )}
         </button>
-
-        <div className="flex w-full flex-wrap items-center justify-end gap-1 sm:ml-auto sm:w-auto sm:flex-nowrap">
-          {LEVELS.map((l) => (
-            <button
-              key={l.key}
-              type="button"
-              onClick={() => setFilter(l.key)}
-              className={cn(
-                "readout rounded-sm px-2 py-1 text-[10px] uppercase tracking-widest transition-colors",
-                filter === l.key
-                  ? "border border-primary text-primary"
-                  : "border border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {l.label}
-            </button>
-          ))}
-          <span className="mx-1 hidden h-3 w-px bg-hairline sm:block" aria-hidden />
-          <Button variant="ghost" size="icon" className="size-7" onClick={copyAll} title="Copy log">
-            <Copy className="size-3.5" aria-hidden />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={download}
-            title="Export log"
-          >
-            <Download className="size-3.5" aria-hidden />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={clearLog}
-            title="Clear log"
-          >
-            <Eraser className="size-3.5" aria-hidden />
-          </Button>
-        </div>
       </header>
 
       {open && (
-        <div className="readout max-h-56 overflow-auto px-3 py-3 text-[10px] leading-relaxed sm:max-h-64 sm:px-4 sm:text-[11px]">
-          {visible.length === 0 ? (
-            <p className="text-muted-foreground">Nothing logged at this level yet.</p>
-          ) : (
-            <ol className="flex flex-col-reverse gap-1">
-              {visible.map((e) => (
-                <li key={e.id} className="flex gap-3">
-                  <span className="shrink-0 text-muted-foreground/70">
-                    {new Date(e.at).toISOString().slice(11, 23)}
-                  </span>
-                  <span className="w-12 shrink-0 truncate uppercase text-primary sm:w-16">
-                    {e.scope}
-                  </span>
-                  <span className={cn("min-w-0 break-words", LEVEL_COLOR[e.level])}>
-                    {e.message}
-                    {e.ms !== undefined && (
-                      <span className="text-muted-foreground"> · {e.ms}ms</span>
-                    )}
-                    {e.detail && (
-                      <span className="block break-all text-muted-foreground">{e.detail}</span>
-                    )}
-                  </span>
-                </li>
+        <div id={panelId}>
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-hairline px-3 py-2 sm:px-4">
+            <div className="flex flex-wrap items-center gap-1" aria-label="Filter log entries">
+              {LEVELS.map((level) => (
+                <button
+                  key={level.key}
+                  type="button"
+                  onClick={() => setFilter(level.key)}
+                  aria-pressed={filter === level.key}
+                  className={cn(
+                    "min-h-9 rounded-lg border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    filter === level.key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-transparent text-muted-foreground hover:bg-inset hover:text-foreground",
+                  )}
+                >
+                  {level.label}
+                </button>
               ))}
-            </ol>
-          )}
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="size-9 rounded-lg" onClick={copyAll} aria-label="Copy log" title="Copy log">
+                <Copy className="size-4" aria-hidden />
+              </Button>
+              <Button variant="ghost" size="icon" className="size-9 rounded-lg" onClick={download} aria-label="Export log" title="Export log">
+                <Download className="size-4" aria-hidden />
+              </Button>
+              <Button variant="ghost" size="icon" className="size-9 rounded-lg" onClick={clearLog} aria-label="Clear log" title="Clear log">
+                <Eraser className="size-4" aria-hidden />
+              </Button>
+            </div>
+          </div>
+
+          <p className={cn("px-4 pt-2 text-[13px]", copyStatus === "failed" ? "text-destructive" : "text-muted-foreground")} role="status" aria-live="polite">
+            {copyStatus === "copied" ? "Log copied." : copyStatus === "failed" ? "Could not copy the log. Use Export log instead." : ""}
+          </p>
+
+          <div className="max-h-64 overflow-auto px-3 pb-3 pt-2 font-mono text-xs leading-5 sm:px-4">
+            {visible.length === 0 ? (
+              <p className="font-sans text-[13px] text-muted-foreground">Nothing logged at this level yet.</p>
+            ) : (
+              <ol className="flex flex-col-reverse gap-1.5">
+                {visible.map((entry) => (
+                  <li key={entry.id} className="grid grid-cols-[5.5rem_4rem_minmax(0,1fr)] gap-2 rounded-lg px-2 py-1 hover:bg-inset">
+                    <span className="text-muted-foreground/80">{new Date(entry.at).toISOString().slice(11, 23)}</span>
+                    <span className="truncate uppercase text-primary">{entry.scope}</span>
+                    <span className={cn("min-w-0 break-words", LEVEL_COLOR[entry.level])}>
+                      {entry.message}
+                      {entry.ms !== undefined && <span className="text-muted-foreground"> · {entry.ms}ms</span>}
+                      {entry.detail && <span className="block whitespace-pre-wrap break-all text-muted-foreground">{entry.detail}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
       )}
     </section>
