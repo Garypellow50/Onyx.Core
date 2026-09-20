@@ -48,9 +48,7 @@ export function Playlist({
         <ul
           className={cn(
             "grid max-h-[26rem] gap-3 overflow-auto p-3 sm:p-4",
-            view === "grid"
-              ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+            view === "grid" ? "grid-cols-2" : "grid-cols-1",
           )}
         >
           {items.map((item) => {
@@ -76,7 +74,7 @@ export function Playlist({
                       fill
                       className="rounded-none border-0 border-b border-hairline"
                     />
-                    <div className="flex items-start gap-2 p-3 pr-11">
+                    <div className="flex items-start gap-2 p-3">
                       {active ? (
                         <Play className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                       ) : (

@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
-import { FileVideo, FolderOpen, Loader2, UploadCloud } from "lucide-react";
+import { FolderOpen, Loader2, UploadCloud } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -106,8 +106,11 @@ export function SourceIntake({
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
             <input
               id="intake-url"
-              type="url"
+              type="text"
               inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={url}
               onChange={(event) => setUrl(event.target.value)}
               placeholder="https://example.com/media"
