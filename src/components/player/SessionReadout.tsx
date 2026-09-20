@@ -28,26 +28,24 @@ export function SessionReadout({
   ];
 
   return (
-    <details className="session-panel group rounded-2xl border border-hairline/70 bg-card/70 px-4 py-3 shadow-sm open:pb-5 sm:px-5">
+    <details className="session-details panel-machined group rounded-2xl border border-hairline/70 bg-card/70 px-4 py-3 shadow-sm open:pb-5 sm:px-5">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-1 marker:hidden [&::-webkit-details-marker]:hidden">
         <span className="min-w-0">
-          <span className="block font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-            Session
-          </span>
-          <span className="mt-1 block truncate font-sans text-sm text-foreground">
+          <span className="block font-sans text-sm font-medium text-foreground">Playback details</span>
+          <span className="mt-1 block truncate font-sans text-xs text-muted-foreground">
             {name ?? "No source selected"}
           </span>
         </span>
-        <span className="shrink-0 font-sans text-xs text-muted-foreground transition group-open:rotate-180" aria-hidden="true">
+        <span className="shrink-0 font-sans text-xs text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true">
           ↓
         </span>
       </summary>
 
       <div className="mt-4 border-t border-hairline/60 pt-4">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Playback diagnostics
-          </h2>
+          <p className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Current session
+          </p>
           <button
             type="button"
             aria-pressed={statsVisible}

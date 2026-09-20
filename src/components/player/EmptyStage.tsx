@@ -8,7 +8,7 @@ export function EmptyStage({ onFiles }: EmptyStageProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="absolute inset-0 isolate flex items-center justify-center overflow-hidden bg-[#171916] px-6 py-10 text-center text-[#f3efe4] sm:px-10">
+    <div className="empty-stage absolute inset-0 isolate flex min-h-[180px] items-center justify-center overflow-hidden bg-[#171916] px-4 py-8 text-center text-[#f3efe4] sm:px-10">
       <div
         aria-hidden="true"
         className="absolute inset-0 opacity-80"
@@ -20,7 +20,7 @@ export function EmptyStage({ onFiles }: EmptyStageProps) {
       <svg
         aria-hidden="true"
         viewBox="0 0 320 220"
-        className="absolute left-1/2 top-1/2 w-[min(74%,28rem)] -translate-x-1/2 -translate-y-1/2 text-[#91a084] opacity-25"
+        className="aperture-mark absolute left-1/2 top-1/2 w-[min(80%,28rem)] -translate-x-1/2 -translate-y-1/2 text-[#91a084] opacity-25"
         fill="none"
       >
         <ellipse cx="160" cy="110" rx="112" ry="76" stroke="currentColor" />
@@ -30,14 +30,15 @@ export function EmptyStage({ onFiles }: EmptyStageProps) {
       </svg>
 
       <div className="relative z-10 flex max-w-lg flex-col items-center">
-        <p className="mb-5 font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a8b39d]">
+        <p className="mb-4 font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a8b39d]">
           Your private screening room
         </p>
         <h2 className="font-display text-balance text-2xl font-medium leading-tight text-[#f3efe4] sm:text-4xl">
-          A little space for your next escape.
+          A little space.
+          <span className="block">For everything you love.</span>
         </h2>
         <p className="mt-4 max-w-md font-sans text-sm leading-6 text-[#c8c3b8]">
-          Choose a film or audio file from this device. Your local media stays in your browser.
+          Choose a film, audio file, or subtitle track from this device. Your local media stays in your browser.
         </p>
         <input
           ref={inputRef}
@@ -45,17 +46,21 @@ export function EmptyStage({ onFiles }: EmptyStageProps) {
           multiple
           className="sr-only"
           onChange={(event) => {
-            const files = Array.from(event.target.files ?? []);
+            const files = Array.from(event.currentTarget.files ?? []);
             if (files.length > 0) onFiles(files);
             event.currentTarget.value = "";
           }}
         />
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            inputRef.current?.click();
+          }}
           className="mt-7 min-h-11 rounded-full border border-[#a8b39d]/60 bg-[#a8b39d] px-6 py-2.5 font-sans text-sm font-semibold text-[#171916] shadow-[0_12px_40px_rgba(0,0,0,0.24)] transition hover:bg-[#bac4b0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f3efe4] focus-visible:ring-offset-4 focus-visible:ring-offset-[#171916]"
         >
-          Choose local media
+          Open file
         </button>
         <p className="mt-3 font-sans text-xs text-[#9f9b92]">Multiple files and subtitle tracks are welcome.</p>
       </div>
