@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ControlBar, type AudioTrackInfo, type FitMode } from "./ControlBar";
+import { EmptyStage } from "./EmptyStage";
 import { LogPanel } from "./LogPanel";
 import { Playlist } from "./Playlist";
 import { ShortcutsDialog } from "./ShortcutsDialog";
@@ -1054,18 +1055,27 @@ export function MediaPlayer() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (
+        target?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")
+      ) return;
 
       const video = videoRef.current;
       const key = event.key;
 
+      // Leave Escape to the browser/dialog and keep help available outside text fields.
+      if (key === "Escape") return;
       if (key === "?") {
         setShortcutsOpen(true);
         event.preventDefault();
         return;
       }
+      if (
+        target?.closest(
+          "button, a, summary, [role='slider'], [role='menuitem'], [role='menuitemcheckbox'], [role='dialog'], [role='alertdialog']",
+        )
+      ) return;
       if (/^[0-9]$/.test(key) && video && video.duration) {
         seek((Number(key) / 10) * video.duration);
         event.preventDefault();
@@ -1198,314 +1208,331 @@ export function MediaPlayer() {
   );
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-6">
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-10">
-        {/* Left: stage + transport */}
-        <div
-          ref={shellRef}
-          className={cn(
-            "relative flex min-w-0 flex-col gap-3 sm:gap-4 lg:col-span-6",
-            isFullscreen && "gap-0 bg-black",
-            isFullscreen && !controlsVisible && "cursor-none",
-          )}
-        >
-          <div
-            ref={stageRef}
-            className={cn(
-              "relative w-full touch-none select-none overflow-hidden bg-black",
-              isFullscreen ? "h-full flex-1" : "aspect-video rounded-sm border border-hairline",
-            )}
-            onDoubleClick={() => {
-              if (lastPointerType.current === "mouse") toggleFullscreen();
-            }}
-            onClick={(event) => {
-              // Mouse only — touch taps are handled by the gesture layer.
-              if (lastPointerType.current !== "mouse") return;
-              if ((event.target as HTMLElement).closest("button")) return;
-              if (src) togglePlay();
-            }}
-            {...gestures.handlers}
-            onPointerDown={(event) => {
-              lastPointerType.current = event.pointerType || "mouse";
-              if (isFullscreen) revealControls();
-              gestures.handlers.onPointerDown(event);
-            }}
-          >
-            {src || remux ? (
-              <>
-                {/* Captions are sideloaded at runtime as <track> children below. */}
-                <video
-                  ref={videoRef}
-                  src={src ?? undefined}
-                  className="absolute inset-0 size-full transition-transform duration-200"
-                  style={{
-                    objectFit,
-                    transform: `rotate(${rotation}deg) scale(${scale})`,
-                  }}
-                  playsInline
-                  autoPlay
-                >
-                  {subtitles.map((t) => (
-                    <track
-                      key={t.id}
-                      kind="subtitles"
-                      src={t.src}
-                      srcLang={t.language}
-                      label={t.label}
-                    />
-                  ))}
-                </video>
-
-                {recoveredAudio && (
-                  <audio
-                    ref={recoveredAudioRef}
-                    src={recoveredAudio}
-                    preload="auto"
-                    className="hidden"
-                  />
-                )}
-
-                {remux && remux.phase !== "done" && (
-                  <OverlayCard
-                    key={`remux-${src ?? "stream"}`}
-                    persistKey="remux"
-                    title={`Remux stream${remux.phase === "error" ? " · failed" : ""}`}
-                    badge={`${Math.round(remux.ratio * 100)}%`}
-                    tone={remux.phase === "error" ? "destructive" : "default"}
-                    className={cn(
-                      "offset-safe-top offset-safe-left left-2 top-2 w-[min(20rem,calc(100%-1rem))] sm:left-4 sm:top-4",
-                    )}
-                  >
-                    <p className="readout text-[10px] leading-relaxed text-muted-foreground">
-                      {remux.message}
-                    </p>
-                    <div className="mt-2 h-1 w-full overflow-hidden rounded-sm bg-hairline">
-                      <div
-                        className={cn(
-                          "h-full transition-all",
-                          remux.phase === "error" ? "bg-destructive" : "bg-primary",
-                        )}
-                        style={{ width: `${Math.max(2, Math.round(remux.ratio * 100))}%` }}
-                      />
-                    </div>
-                    <p className="readout mt-1.5 text-[10px] text-muted-foreground/80">
-                      Video bytes are copied untouched; only unsupported audio is re-encoded.
-                    </p>
-                  </OverlayCard>
-                )}
-                {audioIssue && (
-                  <OverlayCard
-                    key={`audio-issue-${src ?? "stream"}`}
-                    persistKey="audio-issue"
-                    title="Audio not decodable"
-                    tone="destructive"
-                    className={cn(
-                      "offset-safe-top offset-safe-right right-2 top-14 w-[min(18rem,calc(100%-1rem))] sm:right-4 sm:top-4 md:top-2",
-                      overlayFade,
-                    )}
-                  >
-                    <p className="readout text-[10px] leading-relaxed text-muted-foreground">
-                      {audioIssue}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => void recoverAudio()}
-                      disabled={recovery?.busy}
-                      className="readout mt-2 min-h-9 w-full rounded-sm border border-primary px-2 py-1 text-[10px] uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
-                    >
-                      {recovery?.busy ? "Recovering…" : "Recover audio"}
-                    </button>
-                  </OverlayCard>
-                )}
-
-                {recovery && (
-                  <OverlayCard
-                    key={`recovery-${src ?? "stream"}`}
-                    persistKey="recovery"
-                    title="Audio pass"
-                    badge={`${Math.round(recovery.ratio * 100)}%`}
-                    className={cn(
-                      "offset-safe-left bottom-16 left-2 w-[min(18rem,calc(100%-1rem))] sm:bottom-20 sm:left-4",
-                      overlayFade,
-                    )}
-                  >
-                    <p className="readout text-[10px] leading-relaxed text-muted-foreground">
-                      {recovery.message}
-                    </p>
-                    {recovery.busy && (
-                      <>
-                        <div className="mt-2 h-1 w-full overflow-hidden rounded-sm bg-hairline">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${Math.round(recovery.ratio * 100)}%` }}
-                          />
-                        </div>
-                        <p className="readout mt-1.5 flex justify-between text-[10px] text-muted-foreground">
-                          <span>elapsed {formatTime(recoveryElapsed)}</span>
-                          <span>{etaLabel ? `${etaLabel} left` : "estimating…"}</span>
-                        </p>
-                      </>
-                    )}
-                  </OverlayCard>
-                )}
-
-                {/* Touch-first fullscreen toggle, clear of any notch. */}
-                <button
-                  type="button"
-                  aria-label={isFullscreen ? "Leave fullscreen" : "Enter fullscreen"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  className={cn(
-                    "offset-safe-top offset-safe-right absolute right-2 top-2 z-30 grid size-11 place-items-center rounded-sm border border-hairline bg-background/70 text-foreground backdrop-blur-sm transition-opacity md:hidden",
-                    isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
-                  )}
-                >
-                  {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
-                </button>
-
-                {/* Live gesture readout: scrub target, volume, caption offset. */}
-                {gestures.hint && (
-                  <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center">
-                    <div className="readout flex min-w-24 flex-col items-center gap-1.5 rounded-sm border border-hairline bg-background/85 px-3 py-2 text-xs text-foreground backdrop-blur-sm">
-                      <span className="label-machined text-[9px] text-primary">
-                        {gestures.hint.kind === "skip"
-                          ? "skip"
-                          : gestures.hint.kind === "seek"
-                            ? "seek"
-                            : gestures.hint.kind === "volume"
-                              ? "volume"
-                              : "captions"}
-                      </span>
-                      <span>{gestures.hint.label}</span>
-                      {gestures.hint.ratio !== undefined && (
-                        <span className="h-1 w-24 overflow-hidden rounded-sm bg-hairline">
-                          <span
-                            className="block h-full bg-primary"
-                            style={{
-                              width: `${Math.round(Math.max(0, Math.min(1, gestures.hint.ratio)) * 100)}%`,
-                            }}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {cueText && activeSubtitle >= 0 && (
-                  <p
-                    className="pointer-events-none absolute left-1/2 z-10 max-w-[85%] -translate-x-1/2 whitespace-pre-line rounded px-3 py-1 text-center font-medium"
-                    style={{
-                      bottom: `${subtitleOffset}%`,
-                      fontSize: `${subtitleSize}px`,
-                      lineHeight: 1.25,
-                      color: "var(--subtitle-foreground)",
-                      backgroundColor: "var(--subtitle-backdrop)",
-                    }}
-                  >
-                    {cueText}
+    <div className="player-workspace flex w-full min-w-0 flex-col gap-4 sm:gap-6">
+      <div className="player-layout grid min-w-0 grid-cols-1 gap-4 sm:gap-6">
+        {/* Left: heading outside the fullscreen target, stage + transport */}
+        <div className="player-screen-shell flex min-w-0 flex-col gap-3 sm:gap-4">
+          {!isFullscreen && (
+            <div className="player-stage-heading flex min-w-0 flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-medium text-foreground">Your cinema</h2>
+                {current && (
+                  <p className="mt-1 truncate text-xs text-muted-foreground" title={current.name}>
+                    {current.name}
                   </p>
                 )}
+              </div>
+              <p className="text-xs text-muted-foreground">Original picture. Less friction.</p>
+            </div>
+          )}
+          <div
+            ref={shellRef}
+            className={cn(
+              "relative flex min-w-0 flex-col gap-3 sm:gap-4",
+              isFullscreen && "gap-0 bg-black",
+              isFullscreen && !controlsVisible && "cursor-none",
+            )}
+          >
+            <div
+              ref={stageRef}
+              className={cn(
+                "player-stage relative w-full touch-none select-none overflow-hidden bg-black",
+                !src && !remux && "player-stage-empty",
+                isFullscreen ? "h-full flex-1" : "aspect-video rounded-sm border border-hairline",
+              )}
+              onDoubleClick={(event) => {
+                if ((event.target as HTMLElement).closest("button, input, select, textarea, a, label")) return;
+                if (lastPointerType.current === "mouse") toggleFullscreen();
+              }}
+              onClick={(event) => {
+                // Mouse only — touch taps are handled by the gesture layer.
+                if (lastPointerType.current !== "mouse") return;
+                if ((event.target as HTMLElement).closest("button, input, select, textarea, a, label")) return;
+                if (src) togglePlay();
+              }}
+              {...gestures.handlers}
+              onPointerDown={(event) => {
+                lastPointerType.current = event.pointerType || "mouse";
+                if (isFullscreen) revealControls();
+                if ((event.target as HTMLElement).closest("button, input, select, textarea, a, label")) return;
+                gestures.handlers.onPointerDown(event);
+              }}
+            >
+              {src || remux ? (
+                <>
+                  {/* Captions are sideloaded at runtime as <track> children below. */}
+                  <video
+                    ref={videoRef}
+                    src={src ?? undefined}
+                    className="absolute inset-0 size-full transition-transform duration-200"
+                    style={{
+                      objectFit,
+                      transform: `rotate(${rotation}deg) scale(${scale})`,
+                    }}
+                    playsInline
+                    autoPlay
+                  >
+                    {subtitles.map((t) => (
+                      <track
+                        key={t.id}
+                        kind="subtitles"
+                        src={t.src}
+                        srcLang={t.language}
+                        label={t.label}
+                      />
+                    ))}
+                  </video>
 
-                {statsVisible && <StatsOverlay stats={stats} />}
-              </>
-            ) : (
-              <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 border border-dashed border-hairline/70 px-6 text-center">
-                <span className="flex size-12 items-center justify-center border border-hairline">
-                  <span className="size-4 bg-primary" aria-hidden />
-                </span>
-                <p className="label-machined text-muted-foreground">No media loaded</p>
-                <p className="readout text-[10px] italic text-muted-foreground/70">
-                  Awaiting binary stream input — original bytes, no re-encode
-                </p>
+                  {recoveredAudio && (
+                    <audio
+                      ref={recoveredAudioRef}
+                      src={recoveredAudio}
+                      preload="auto"
+                      className="hidden"
+                    />
+                  )}
+
+                  {remux && remux.phase !== "done" && (
+                    <OverlayCard
+                      key={`remux-${src ?? "stream"}`}
+                      persistKey="remux"
+                      title={`Remux stream${remux.phase === "error" ? " · failed" : ""}`}
+                      badge={`${Math.round(remux.ratio * 100)}%`}
+                      tone={remux.phase === "error" ? "destructive" : "default"}
+                      className={cn(
+                        "offset-safe-top offset-safe-left left-2 top-2 w-[min(20rem,calc(100%-1rem))] sm:left-4 sm:top-4",
+                      )}
+                    >
+                      <p className="readout text-[10px] leading-relaxed text-muted-foreground">
+                        {remux.message}
+                      </p>
+                      <div className="mt-2 h-1 w-full overflow-hidden rounded-sm bg-hairline">
+                        <div
+                          className={cn(
+                            "h-full transition-all",
+                            remux.phase === "error" ? "bg-destructive" : "bg-primary",
+                          )}
+                          style={{ width: `${Math.max(2, Math.round(remux.ratio * 100))}%` }}
+                        />
+                      </div>
+                      <p className="readout mt-1.5 text-[10px] text-muted-foreground/80">
+                        Video bytes are copied untouched; only unsupported audio is re-encoded.
+                      </p>
+                    </OverlayCard>
+                  )}
+                  {audioIssue && (
+                    <OverlayCard
+                      key={`audio-issue-${src ?? "stream"}`}
+                      persistKey="audio-issue"
+                      title="Audio not decodable"
+                      tone="destructive"
+                      className={cn(
+                        "offset-safe-top offset-safe-right right-2 top-14 w-[min(18rem,calc(100%-1rem))] sm:right-4 sm:top-4 md:top-2",
+                        overlayFade,
+                      )}
+                    >
+                      <p className="readout text-[10px] leading-relaxed text-muted-foreground">
+                        {audioIssue}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void recoverAudio()}
+                        disabled={recovery?.busy}
+                        className="readout mt-2 min-h-9 w-full rounded-sm border border-primary px-2 py-1 text-[10px] uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
+                      >
+                        {recovery?.busy ? "Recovering…" : "Recover audio"}
+                      </button>
+                    </OverlayCard>
+                  )}
+
+                  {recovery && (
+                    <OverlayCard
+                      key={`recovery-${src ?? "stream"}`}
+                      persistKey="recovery"
+                      title="Audio pass"
+                      badge={`${Math.round(recovery.ratio * 100)}%`}
+                      className={cn(
+                        "offset-safe-left bottom-16 left-2 w-[min(18rem,calc(100%-1rem))] sm:bottom-20 sm:left-4",
+                        overlayFade,
+                      )}
+                    >
+                      <p className="readout text-[10px] leading-relaxed text-muted-foreground">
+                        {recovery.message}
+                      </p>
+                      {recovery.busy && (
+                        <>
+                          <div className="mt-2 h-1 w-full overflow-hidden rounded-sm bg-hairline">
+                            <div
+                              className="h-full bg-primary transition-all"
+                              style={{ width: `${Math.round(recovery.ratio * 100)}%` }}
+                            />
+                          </div>
+                          <p className="readout mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+                            <span>elapsed {formatTime(recoveryElapsed)}</span>
+                            <span>{etaLabel ? `${etaLabel} left` : "estimating…"}</span>
+                          </p>
+                        </>
+                      )}
+                    </OverlayCard>
+                  )}
+
+                  {/* Touch-first fullscreen toggle, clear of any notch. */}
+                  <button
+                    type="button"
+                    aria-label={isFullscreen ? "Leave fullscreen" : "Enter fullscreen"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFullscreen();
+                    }}
+                    className={cn(
+                      "offset-safe-top offset-safe-right absolute right-2 top-2 z-30 grid size-11 place-items-center rounded-sm border border-hairline bg-background/70 text-foreground backdrop-blur-sm transition-opacity md:hidden",
+                      isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
+                    )}
+                  >
+                    {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
+                  </button>
+
+                  {/* Live gesture readout: scrub target, volume, caption offset. */}
+                  {gestures.hint && (
+                    <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center">
+                      <div className="readout flex min-w-24 flex-col items-center gap-1.5 rounded-sm border border-hairline bg-background/85 px-3 py-2 text-xs text-foreground backdrop-blur-sm">
+                        <span className="label-machined text-[9px] text-primary">
+                          {gestures.hint.kind === "skip"
+                            ? "skip"
+                            : gestures.hint.kind === "seek"
+                              ? "seek"
+                              : gestures.hint.kind === "volume"
+                                ? "volume"
+                                : "captions"}
+                        </span>
+                        <span>{gestures.hint.label}</span>
+                        {gestures.hint.ratio !== undefined && (
+                          <span className="h-1 w-24 overflow-hidden rounded-sm bg-hairline">
+                            <span
+                              className="block h-full bg-primary"
+                              style={{
+                                width: `${Math.round(Math.max(0, Math.min(1, gestures.hint.ratio)) * 100)}%`,
+                              }}
+                            />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {cueText && activeSubtitle >= 0 && (
+                    <p
+                      className="pointer-events-none absolute left-1/2 z-10 max-w-[85%] -translate-x-1/2 whitespace-pre-line rounded px-3 py-1 text-center font-medium"
+                      style={{
+                        bottom: `${subtitleOffset}%`,
+                        fontSize: `${subtitleSize}px`,
+                        lineHeight: 1.25,
+                        color: "var(--subtitle-foreground)",
+                        backgroundColor: "var(--subtitle-backdrop)",
+                      }}
+                    >
+                      {cueText}
+                    </p>
+                  )}
+
+                  {statsVisible && <StatsOverlay stats={stats} />}
+                </>
+              ) : (
+                <EmptyStage onFiles={(files) => void addFiles(files)} />
+              )}
+            </div>
+
+            <div
+              className={cn(
+                isFullscreen &&
+                  "pad-safe absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent pt-10 transition-opacity duration-300",
+                isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
+              )}
+            >
+              <ControlBar
+                playing={playing}
+                currentTime={currentTime}
+                duration={duration}
+                buffered={buffered}
+                volume={volume}
+                muted={muted}
+                rate={rate}
+                fit={fit}
+                rotation={rotation}
+                subtitles={subtitles}
+                activeSubtitle={activeSubtitle}
+                audioTracks={audioOptions}
+                recovery={recovery ? { busy: recovery.busy, ratio: recovery.ratio, etaLabel } : null}
+                canRecoverAudio={Boolean(current) && !recoveredAudio}
+                onRecoverAudio={() => void recoverAudio()}
+                statsVisible={statsVisible}
+                onTogglePlay={togglePlay}
+                onSeek={seek}
+                onSkip={skip}
+                onVolume={setVideoVolume}
+                onToggleMute={toggleMute}
+                onRate={applyRate}
+                onFit={setFit}
+                onRotate={rotate}
+                onFullscreen={toggleFullscreen}
+                onPictureInPicture={togglePip}
+                onSubtitle={setActiveSubtitle}
+                onAudioTrack={selectAudioTrack}
+                onAddSubtitleFile={(file) => void addSubtitleFile(file)}
+                onToggleStats={() => setStatsVisible((v) => !v)}
+                onShortcuts={() => setShortcutsOpen(true)}
+              />
+            </div>
+
+            {src && activeSubtitle >= 0 && !isFullscreen && (
+              <div className="panel-machined flex flex-wrap items-center gap-3 px-3 py-2.5 text-xs sm:gap-5 sm:px-4">
+                <label className="flex min-w-0 items-center gap-2">
+                  <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Caption size
+                  </span>
+                  <input
+                    type="range"
+                    min={14}
+                    max={64}
+                    value={subtitleSize}
+                    onChange={(e) => setSubtitleSize(Number(e.target.value))}
+                    className="min-w-0 flex-1 accent-primary sm:flex-none"
+                  />
+                  <span className="readout text-[10px] text-foreground">{subtitleSize}px</span>
+                </label>
+                <label className="flex min-w-0 items-center gap-2">
+                  <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Vertical offset
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={40}
+                    value={subtitleOffset}
+                    onChange={(e) => setSubtitleOffset(Number(e.target.value))}
+                    className="min-w-0 flex-1 accent-primary sm:flex-none"
+                  />
+                  <span className="readout text-[10px] text-foreground">{subtitleOffset}%</span>
+                </label>
               </div>
             )}
           </div>
-
-          <div
-            className={cn(
-              isFullscreen &&
-                "pad-safe absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent pt-10 transition-opacity duration-300",
-              isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
-            )}
-          >
-            <ControlBar
-              playing={playing}
-              currentTime={currentTime}
-              duration={duration}
-              buffered={buffered}
-              volume={volume}
-              muted={muted}
-              rate={rate}
-              fit={fit}
-              rotation={rotation}
-              subtitles={subtitles}
-              activeSubtitle={activeSubtitle}
-              audioTracks={audioOptions}
-              recovery={recovery ? { busy: recovery.busy, ratio: recovery.ratio, etaLabel } : null}
-              canRecoverAudio={Boolean(current) && !recoveredAudio}
-              onRecoverAudio={() => void recoverAudio()}
-              statsVisible={statsVisible}
-              onTogglePlay={togglePlay}
-              onSeek={seek}
-              onSkip={skip}
-              onVolume={setVideoVolume}
-              onToggleMute={toggleMute}
-              onRate={applyRate}
-              onFit={setFit}
-              onRotate={rotate}
-              onFullscreen={toggleFullscreen}
-              onPictureInPicture={togglePip}
-              onSubtitle={setActiveSubtitle}
-              onAudioTrack={selectAudioTrack}
-              onAddSubtitleFile={(file) => void addSubtitleFile(file)}
-              onToggleStats={() => setStatsVisible((v) => !v)}
-              onShortcuts={() => setShortcutsOpen(true)}
-            />
-          </div>
-
-          {src && activeSubtitle >= 0 && !isFullscreen && (
-            <div className="panel-machined flex flex-wrap items-center gap-3 px-3 py-2.5 text-xs sm:gap-5 sm:px-4">
-              <label className="flex min-w-0 items-center gap-2">
-                <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Caption size
-                </span>
-                <input
-                  type="range"
-                  min={14}
-                  max={64}
-                  value={subtitleSize}
-                  onChange={(e) => setSubtitleSize(Number(e.target.value))}
-                  className="min-w-0 flex-1 accent-primary sm:flex-none"
-                />
-                <span className="readout text-[10px] text-foreground">{subtitleSize}px</span>
-              </label>
-              <label className="flex min-w-0 items-center gap-2">
-                <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Vertical offset
-                </span>
-                <input
-                  type="range"
-                  min={0}
-                  max={40}
-                  value={subtitleOffset}
-                  onChange={(e) => setSubtitleOffset(Number(e.target.value))}
-                  className="min-w-0 flex-1 accent-primary sm:flex-none"
-                />
-                <span className="readout text-[10px] text-foreground">{subtitleOffset}%</span>
-              </label>
-            </div>
-          )}
         </div>
 
-        {/* Right: intake + queue console rail */}
-        <div className="flex min-w-0 flex-col gap-4 sm:gap-6 lg:col-span-4">
+        {/* Right: intake, queue, then optional playback details */}
+        <div className="player-sidebar flex min-w-0 flex-col gap-4 sm:gap-6">
           <SourceIntake
             onFiles={(files) => void addFiles(files)}
             onUrl={(url) => void addUrl(url)}
             busy={intakeBusy}
             error={intakeError}
+          />
+
+          <Playlist
+            items={items}
+            currentId={currentId}
+            onSelect={setCurrentId}
+            onRemove={removeItem}
           />
 
           <SessionReadout
@@ -1515,13 +1542,6 @@ export function MediaPlayer() {
             onToggleStats={() => setStatsVisible((v) => !v)}
             name={current?.name ?? null}
             rotation={rotation}
-          />
-
-          <Playlist
-            items={items}
-            currentId={currentId}
-            onSelect={setCurrentId}
-            onRemove={removeItem}
           />
         </div>
       </div>
@@ -1567,37 +1587,40 @@ function SessionReadout({
   ];
 
   return (
-    <section className="panel-machined p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="label-machined text-foreground">Playback stats</h2>
+    <details className="session-details">
+      <summary className="cursor-pointer px-4 py-4 text-sm font-medium text-foreground sm:px-5">
+        Playback details
+      </summary>
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+        <p className="readout mb-4 truncate text-[11px] text-foreground" title={name ?? undefined}>
+          {name ?? <span className="text-muted-foreground">no source selected</span>}
+        </p>
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <dt className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
+                {label}
+              </dt>
+              <dd className="readout truncate text-xs text-foreground">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
         <button
           type="button"
           onClick={onToggleStats}
+          aria-pressed={statsVisible}
           className={cn(
-            "readout rounded-sm border px-1.5 py-0.5 text-[9px] uppercase tracking-widest transition-colors",
+            "mt-4 min-h-9 rounded-sm border px-3 py-1.5 text-xs transition-colors",
             statsVisible
               ? "border-primary text-primary"
               : "border-hairline text-muted-foreground hover:text-foreground",
           )}
         >
-          {statsVisible ? "live" : "overlay off"}
+          Stats overlay: {statsVisible ? "on" : "off"}
         </button>
       </div>
-
-      <p className="readout mb-4 truncate text-[11px] text-foreground">
-        {name ?? <span className="text-muted-foreground">no source selected</span>}
-      </p>
-
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex flex-col gap-0.5">
-            <dt className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-              {label}
-            </dt>
-            <dd className="readout truncate text-xs text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    </details>
   );
 }
