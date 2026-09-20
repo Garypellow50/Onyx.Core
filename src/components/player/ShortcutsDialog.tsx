@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: "Space / K", action: "Play or pause" },
@@ -34,18 +28,15 @@ export function ShortcutsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl border-hairline bg-panel p-6 sm:p-8">
-        <DialogHeader className="space-y-2 text-left">
-          <DialogTitle className="text-xl font-medium text-foreground">Keyboard shortcuts</DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-            Control playback without leaving the player. Shortcuts do not run while you type in a field or adjust the seek control.
-          </DialogDescription>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto rounded-3xl border-border bg-card p-5 sm:p-7">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold tracking-tight">Keyboard shortcuts</DialogTitle>
         </DialogHeader>
-        <ul className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+        <ul className="mt-2 grid gap-1 sm:grid-cols-2 sm:gap-x-6">
           {SHORTCUTS.map((shortcut) => (
-            <li key={shortcut.keys} className="flex min-h-12 items-center justify-between gap-4 border-b border-hairline/70 py-2 text-sm">
-              <span className="leading-snug text-muted-foreground">{shortcut.action}</span>
-              <kbd className="shrink-0 rounded-lg border border-hairline bg-inset px-2.5 py-1.5 font-mono text-xs text-foreground shadow-sm">
+            <li key={shortcut.keys} className="flex min-h-11 items-center justify-between gap-3 border-b border-border/70 py-2 text-sm">
+              <span className="text-muted-foreground">{shortcut.action}</span>
+              <kbd className="shrink-0 rounded-lg border border-border bg-background px-2 py-1 font-mono text-[11px] text-foreground shadow-sm">
                 {shortcut.keys}
               </kbd>
             </li>

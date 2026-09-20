@@ -1,14 +1,14 @@
-import { useId, useMemo, useState } from "react";
-import { ChevronDown, Copy, Download, Eraser, Terminal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Copy, Download, Eraser, Terminal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { clearLog, exportLog, useLog, type LogLevel } from "@/lib/player/log";
 
 const LEVELS: { key: LogLevel | "all"; label: string }[] = [
-  { key: "all", label: "All" },
+  { key: "all", label: "All entries" },
   { key: "debug", label: "Debug" },
-  { key: "info", label: "Info" },
+  { key: "info", label: "Information" },
   { key: "success", label: "Success" },
   { key: "warn", label: "Warnings" },
   { key: "error", label: "Errors" },
@@ -22,29 +22,30 @@ const LEVEL_COLOR: Record<LogLevel, string> = {
   error: "text-destructive",
 };
 
+const PANEL_ID = "playback-engineering-log";
+
 export function LogPanel() {
   const entries = useLog();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<LogLevel | "all">("all");
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
-  const panelId = useId();
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const visible = useMemo(
     () => (filter === "all" ? entries : entries.filter((entry) => entry.level === filter)),
     [entries, filter],
   );
-  const warningCount = entries.filter((entry) => entry.level === "warn").length;
+
   const errorCount = entries.filter((entry) => entry.level === "error").length;
 
   async function copyAll() {
     try {
-      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
       await navigator.clipboard.writeText(exportLog());
-      setCopyStatus("copied");
-    } catch {
-      setCopyStatus("failed");
+      setCopyStatus("Log copied.");
+    } catch (error) {
+      setCopyStatus(
+        error instanceof Error ? `Could not copy the log: ${error.message}` : "Could not copy the log.",
+      );
     }
-    window.setTimeout(() => setCopyStatus("idle"), 2000);
   }
 
   function download() {
@@ -58,76 +59,82 @@ export function LogPanel() {
   }
 
   return (
-    <section className="diagnostics min-w-0 overflow-hidden rounded-2xl border border-hairline bg-panel/70">
-      <header className={cn("flex flex-wrap items-center gap-3 px-4 py-3", open && "border-b border-hairline")}>
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
+      <header className="flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
+          className="flex min-h-11 flex-1 items-center gap-2 rounded-xl px-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-expanded={open}
-          aria-controls={panelId}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-controls={PANEL_ID}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Terminal className="size-4" aria-hidden />
+          <Terminal className="size-4 text-primary" aria-hidden />
+          Playback log
+          <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs font-normal text-muted-foreground">
+            {entries.length}
           </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-medium text-foreground">Diagnostics</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              {entries.length} event{entries.length === 1 ? "" : "s"} · {warningCount} warning{warningCount === 1 ? "" : "s"} · {errorCount} error{errorCount === 1 ? "" : "s"}
+          {errorCount > 0 && (
+            <span className="rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-xs font-normal text-destructive">
+              {errorCount} {errorCount === 1 ? "error" : "errors"}
             </span>
-          </span>
-          <ChevronDown className={cn("ml-auto size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden />
+          )}
+          {open ? (
+            <ChevronUp className="ml-auto size-4 text-muted-foreground" aria-hidden />
+          ) : (
+            <ChevronDown className="ml-auto size-4 text-muted-foreground" aria-hidden />
+          )}
         </button>
+
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={copyAll} aria-label="Copy playback log">
+            <Copy className="size-4" aria-hidden />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={download} aria-label="Export playback log">
+            <Download className="size-4" aria-hidden />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={clearLog} aria-label="Clear playback log">
+            <Eraser className="size-4" aria-hidden />
+          </Button>
+        </div>
       </header>
 
+      {copyStatus && (
+        <p className={cn("border-t border-border px-4 py-2 text-xs", copyStatus.startsWith("Could not") ? "text-destructive" : "text-muted-foreground")} role="status">
+          {copyStatus}
+        </p>
+      )}
+
       {open && (
-        <div id={panelId}>
-          <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-3 py-3 sm:px-4">
-            <div className="flex flex-wrap gap-1" role="group" aria-label="Filter diagnostics">
-              {LEVELS.map((level) => (
-                <button
-                  key={level.key}
-                  type="button"
-                  onClick={() => setFilter(level.key)}
-                  aria-pressed={filter === level.key}
-                  className={cn(
-                    "min-h-9 rounded-full border px-3 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    filter === level.key
-                      ? "border-primary/60 bg-primary/10 text-primary"
-                      : "border-transparent text-muted-foreground hover:bg-inset hover:text-foreground",
-                  )}
-                >
-                  {level.label}
-                </button>
-              ))}
-            </div>
-            <div className="ml-auto flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={copyAll} title="Copy diagnostics" aria-label="Copy diagnostics">
-                <Copy className="size-4" aria-hidden />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={download} title="Download diagnostics" aria-label="Download diagnostics">
-                <Download className="size-4" aria-hidden />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-11 rounded-xl" onClick={clearLog} title="Clear diagnostics" aria-label="Clear diagnostics">
-                <Eraser className="size-4" aria-hidden />
-              </Button>
-            </div>
-            <p className="w-full text-right text-xs text-muted-foreground" aria-live="polite">
-              {copyStatus === "copied" && "Diagnostics copied."}
-              {copyStatus === "failed" && "Could not access the clipboard. Download the log instead."}
-            </p>
+        <div id={PANEL_ID} className="border-t border-border">
+          <div className="flex flex-wrap gap-2 p-3 sm:p-4" aria-label="Filter playback log">
+            {LEVELS.map((level) => (
+              <button
+                key={level.key}
+                type="button"
+                onClick={() => setFilter(level.key)}
+                aria-pressed={filter === level.key}
+                className={cn(
+                  "min-h-11 rounded-xl border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  filter === level.key
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {level.label}
+              </button>
+            ))}
           </div>
 
-          <div className="readout max-h-64 overflow-auto px-4 py-3 text-xs leading-relaxed">
+          <div className="readout max-h-64 overflow-auto border-t border-border bg-background px-3 py-3 text-[11px] leading-relaxed sm:px-4">
             {visible.length === 0 ? (
-              <p className="py-4 text-center text-muted-foreground">Nothing logged at this level yet.</p>
+              <p className="text-muted-foreground">No entries match this filter.</p>
             ) : (
-              <ol className="flex flex-col-reverse gap-1.5">
+              <ol className="flex flex-col-reverse gap-1">
                 {visible.map((entry) => (
-                  <li key={entry.id} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 sm:grid-cols-[5.5rem_7rem_minmax(0,1fr)]">
+                  <li key={entry.id} className="grid grid-cols-[auto_auto_minmax(0,1fr)] gap-x-3 rounded-lg px-2 py-1.5 hover:bg-muted/60">
                     <span className="text-muted-foreground/70">{new Date(entry.at).toISOString().slice(11, 23)}</span>
-                    <span className="break-words text-primary sm:col-auto">{entry.scope}</span>
-                    <span className={cn("col-span-2 min-w-0 break-words sm:col-span-1", LEVEL_COLOR[entry.level])}>
+                    <span className="w-16 truncate text-primary">{entry.scope}</span>
+                    <span className={cn("min-w-0 break-words", LEVEL_COLOR[entry.level])}>
                       {entry.message}
                       {entry.ms !== undefined && <span className="text-muted-foreground"> · {entry.ms}ms</span>}
                       {entry.detail && <span className="block break-all text-muted-foreground">{entry.detail}</span>}
