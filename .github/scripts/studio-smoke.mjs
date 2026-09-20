@@ -282,7 +282,10 @@ try {
       if (loaded) {
         await check("Playback button pauses and resumes media", async () => {
           const video = stage.locator("video");
-          const pause = page.getByRole("button", { name: "Pause", exact: true });
+          const pause = page.getByRole("button", {
+            name: "Pause",
+            exact: true,
+          });
           if (!(await video.evaluate((el) => el.paused))) {
             await pause.click();
             await eventually(
@@ -309,7 +312,8 @@ try {
             .getByRole("menuitemcheckbox", { name: "2×", exact: true })
             .click();
           await eventually(
-            () => stage.locator("video").evaluate((el) => el.playbackRate === 2),
+            () =>
+              stage.locator("video").evaluate((el) => el.playbackRate === 2),
             "Native playbackRate did not become 2",
           );
           await visible(
@@ -384,7 +388,10 @@ try {
   report.status = failed.length ? "failed" : "passed";
   report.passed = report.checks.length - failed.length;
   report.failed = failed.length;
-  await writeFile(`${output}/report.json`, `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(
+    `${output}/report.json`,
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
   const result = `${report.status}; ${report.passed} passed, ${report.failed} failed`;
   const summary = [
     "# Studio browser smoke",
