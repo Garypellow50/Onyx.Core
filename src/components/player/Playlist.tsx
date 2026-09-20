@@ -65,7 +65,12 @@ export function Playlist({
                     className="block w-full text-left"
                   >
                     <Thumb
-                      source={{ key: item.url ?? item.id, name: item.name, url: item.url, file: item.file }}
+                      source={{
+                        key: item.url ?? item.id,
+                        name: item.name,
+                        url: item.url,
+                        file: item.file,
+                      }}
                       kind={item.kind}
                       fill
                       className="rounded-none border-0 border-b border-hairline"
@@ -120,7 +125,8 @@ export function Playlist({
                 <div
                   className={cn(
                     "flex items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-inset sm:px-4",
-                    active && "border-l-2 border-l-primary bg-inset pl-[calc(0.75rem-2px)] sm:pl-[calc(1rem-2px)]",
+                    active &&
+                      "border-l-2 border-l-primary bg-inset pl-[calc(0.75rem-2px)] sm:pl-[calc(1rem-2px)]",
                   )}
                 >
                   <button
@@ -130,25 +136,32 @@ export function Playlist({
                     className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     <Thumb
-                      source={{ key: item.url ?? item.id, name: item.name, url: item.url, file: item.file }}
+                      source={{
+                        key: item.url ?? item.id,
+                        name: item.name,
+                        url: item.url,
+                        file: item.file,
+                      }}
                       kind={item.kind}
                     />
-                    {active ? (
-                      <Play className="size-3.5 shrink-0 text-primary" aria-hidden />
-                    ) : (
-                      <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    )}
-                    <span title={item.name} className="min-w-0 flex-1 truncate text-foreground">
-                      {item.name}
-                    </span>
-                    <span className="shrink-0 text-sm text-muted-foreground">
-                      {formatBytes(item.size)}
-                    </span>
-                    {!item.native && (
-                      <span className="shrink-0 rounded-md border border-chart-4/60 px-1.5 py-0.5 text-[11px] text-chart-4">
-                        remux
+                    <span className="min-w-0 flex-1">
+                      <span title={item.name} className="block truncate text-foreground">
+                        {item.name}
                       </span>
-                    )}
+                      <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+                        {active ? (
+                          <Play className="size-3.5 shrink-0 text-primary" aria-hidden />
+                        ) : (
+                          <Icon className="size-3.5 shrink-0" aria-hidden />
+                        )}
+                        <span>{formatBytes(item.size)}</span>
+                        {!item.native && (
+                          <span className="rounded-md border border-chart-4/60 px-1.5 py-0.5 text-[11px] text-chart-4">
+                            remux
+                          </span>
+                        )}
+                      </span>
+                    </span>
                   </button>
                   <button
                     type="button"
