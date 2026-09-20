@@ -1247,7 +1247,7 @@ export function MediaPlayer() {
             ref={stageRef}
             className={cn(
               "cinema-stage relative w-full select-none overflow-hidden bg-black",
-              src || remux ? "touch-none" : "min-h-[280px] touch-auto",
+              src || remux ? "touch-none" : "min-h-[340px] touch-auto",
               isFullscreen ? "h-full flex-1" : "aspect-video rounded-2xl border border-hairline",
             )}
             onDoubleClick={() => {
@@ -1447,9 +1447,8 @@ export function MediaPlayer() {
               </>
             ) : (
               <div className="cinema-empty absolute inset-0 flex flex-col items-center justify-center px-6 py-6 text-center">
-                <div className="cinema-aperture pointer-events-none" aria-hidden="true" />
                 <div className="relative z-10 flex max-w-md flex-col items-center">
-                  <span className="mb-4 grid size-14 place-items-center rounded-full border border-hairline bg-panel/60 text-primary sm:mb-5 sm:size-16" aria-hidden="true">
+                  <span className="cinema-aperture pointer-events-none mb-4 sm:mb-5" aria-hidden="true">
                     <Play className="ml-0.5 size-6" strokeWidth={1.5} />
                   </span>
                   <h2 className="font-display text-xl font-medium tracking-tight text-foreground sm:text-2xl">
