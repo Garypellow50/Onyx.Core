@@ -1,22 +1,5 @@
-import { useId, useRef, useState, type DragEvent, type FormEvent } from "react";
-import { FileVideo, FolderOpen, Loader2, UploadCloud } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-
-/** Non-standard but universally supported directory-picker attributes. */
-const folderInputAttrs = {
-  webkitdirectory: "true",
-  directory: "true",
-} as React.InputHTMLAttributes<HTMLInputElement>;
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { useId, useRef, useState, type DragEvent } from "react";
+import { ArrowUpRight, FilePlus2, FolderOpen, Link2, Loader2, LockKeyhole, Plus } from "lucide-react";
 
 export function SourceIntake({
   onFiles,
@@ -29,168 +12,123 @@ export function SourceIntake({
   busy: boolean;
   error: string | null;
 }) {
+  const id = useId();
   const [url, setUrl] = useState("");
-  const [validation, setValidation] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const dragCounter = useRef(0);
+  const dragDepth = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
-  const errorId = useId();
 
-  const shownError = validation ?? error;
-
-  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
+  function handleDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
-    dragCounter.current += 1;
-    setDragging(true);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-  }
-
-  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    dragCounter.current = Math.max(0, dragCounter.current - 1);
-    if (dragCounter.current === 0) setDragging(false);
-  }
-
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    dragCounter.current = 0;
+    dragDepth.current = 0;
     setDragging(false);
-    const files = Array.from(event.dataTransfer.files ?? []);
-    if (files.length > 0) onFiles(files);
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const trimmed = url.trim();
-    if (trimmed === "") {
-      setValidation("Enter a link first.");
-      return;
-    }
-    if (!isHttpUrl(trimmed)) {
-      setValidation("Use a web link that starts with http:// or https://.");
-      return;
-    }
-    setValidation(null);
-    onUrl(trimmed);
-  }
-
-  function pickFiles(files: FileList | null) {
-    const list = Array.from(files ?? []);
-    if (list.length) onFiles(list);
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length) onFiles(files);
   }
 
   return (
-    <div
+    <section
       id="source-intake"
-      className="source-intake flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5"
+      aria-labelledby={`${id}-heading`}
+      className="source-intake panel-machined"
+      data-dragging={dragging}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        if (!event.dataTransfer.types.includes("Files")) return;
+        dragDepth.current += 1;
+        setDragging(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (event.dataTransfer.types.includes("Files")) event.dataTransfer.dropEffect = "copy";
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragging(false);
+      }}
+      onDrop={handleDrop}
     >
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Add source
-        </p>
-        <h2 className="mt-0.5 text-sm font-medium text-foreground">Local files or a link</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 id={`${id}-heading`} className="text-sm font-medium">Add to your cinema</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Start with something worth watching.</p>
+        </div>
+        <Plus className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <FileVideo className="size-4" aria-hidden />
-          Open files
+      <button type="button" className="source-drop" onClick={() => fileInput.current?.click()}>
+        <FilePlus2 className="size-6 text-chart-2" strokeWidth={1.25} aria-hidden="true" />
+        <span className="font-medium text-foreground">{dragging ? "Release to add your files" : "Drop your files here"}</span>
+        <span>or browse this device</span>
+      </button>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" className="secondary-action" onClick={() => fileInput.current?.click()}>
+          <FilePlus2 className="size-4" aria-hidden="true" />Files
         </button>
-        <button
-          type="button"
-          onClick={() => folderInput.current?.click()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          <FolderOpen className="size-4" aria-hidden />
-          Open folder
+        <button type="button" className="secondary-action" onClick={() => folderInput.current?.click()}>
+          <FolderOpen className="size-4" aria-hidden="true" />Folder
         </button>
       </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Video, audio, and .srt, .vtt, .ass or .ssa captions.</p>
 
-      <div
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={cn(
-          "flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border py-6 text-center transition-colors",
-          dragging && "border-primary bg-accent",
-        )}
+      <form
+        className="mt-5 border-t border-hairline pt-5"
+        aria-busy={busy}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!busy && url.trim()) onUrl(url.trim());
+        }}
       >
-        <UploadCloud className="size-5 text-muted-foreground" aria-hidden />
-        <p className="text-xs text-muted-foreground">Drag video or audio files here</p>
-        <p className="text-[11px] text-muted-foreground/80">
-          Local files stay on this device and are never uploaded.
-        </p>
-      </div>
-
-      <div className="flex items-center gap-3" aria-hidden="true">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Or a link
-        </span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <label htmlFor="intake-url" className="text-xs font-medium text-foreground">
-          Remote URL
+        <label htmlFor={`${id}-url`} className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
+          <Link2 className="size-3.5 text-muted-foreground" aria-hidden="true" />
+          Or open a link
         </label>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+        <div className="flex min-w-0 gap-2">
           <input
-            id="intake-url"
+            id={`${id}-url`}
             type="url"
             inputMode="url"
+            required
             autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
             value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              if (validation) setValidation(null);
-            }}
-            placeholder="https://host.example/movie.mp4"
-            aria-invalid={shownError ? true : undefined}
-            aria-describedby={shownError ? errorId : undefined}
-            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="https://…"
+            aria-describedby={`${id}-help`}
+            className="source-input flex-1"
           />
           <button
             type="submit"
-            disabled={busy || url.trim() === ""}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={busy || !url.trim()}
+            className="primary-action shrink-0 !px-3"
+            aria-label={busy ? "Opening link" : "Open link"}
+            title="Open link"
           >
-            {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : null}
-            {busy ? "Loading\u2026" : "Load"}
+            {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ArrowUpRight className="size-4" aria-hidden="true" />}
           </button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Direct file links, or a shared folder link from Google Drive, OneDrive, or Dropbox.
+        <p id={`${id}-help`} className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Direct media or public Drive, OneDrive, Dropbox and SharePoint links.
         </p>
+        <p role="status" className="sr-only">{busy ? "Opening your link. Please wait." : ""}</p>
       </form>
 
-      <p id={errorId} role="alert" aria-live="assertive" className={cn(!shownError && "sr-only")}>
-        {shownError ? (
-          <span className="block rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive">
-            {shownError}
-          </span>
-        ) : null}
+      {error && <p role="alert" className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive">{error}</p>}
+      <p className="source-privacy">
+        <LockKeyhole className="mt-0.5 size-3.5 shrink-0 text-chart-2" aria-hidden="true" />
+        Local files play on this device. No upload required.
       </p>
-
       <input
-        id="onyx-file-input"
         ref={fileInput}
         type="file"
         multiple
         hidden
-        onChange={(e) => {
-          pickFiles(e.target.files);
-          e.target.value = "";
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (files.length) onFiles(files);
+          event.target.value = "";
         }}
       />
       <input
@@ -198,12 +136,13 @@ export function SourceIntake({
         type="file"
         multiple
         hidden
-        {...folderInputAttrs}
-        onChange={(e) => {
-          pickFiles(e.target.files);
-          e.target.value = "";
+        {...{ webkitdirectory: "", directory: "" }}
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (files.length) onFiles(files);
+          event.target.value = "";
         }}
       />
-    </div>
+    </section>
   );
 }

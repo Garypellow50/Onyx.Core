@@ -1,12 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
+import { useState } from "react";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { Keyboard, ShieldCheck } from "lucide-react";
 
-import logo from "@/assets/onyxcore-logo.png";
 import { MediaPlayer } from "@/components/player/MediaPlayer";
+import { ShortcutsDialog } from "@/components/player/ShortcutsDialog";
 
-const TITLE = "OnyxCore — local-first large media player";
+const TITLE = "Onyx.Core | Your personal cinema";
 const DESCRIPTION =
-  "Play huge video and audio files in the browser at original quality: captions, audio tracks, 10-second skips, rotation, keyboard shortcuts and a verbose step-by-step log.";
+  "A quiet, local-first player for your video and audio. Open files, folders, or public links with captions, audio recovery, and original-quality video where supported.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,40 +22,68 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-4 p-3 sm:gap-6 sm:p-6">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline pb-3 sm:gap-4 sm:pb-4">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-4">
-          <img
-            src={logo}
-            alt="OnyxCore logo"
-            width={1024}
-            height={1024}
-            className="size-7 shrink-0 sm:size-8"
-          />
-          <h1 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            ONYX<span className="text-primary">.</span>CORE
-          </h1>
-          <span className="hidden h-4 w-px bg-hairline sm:block" aria-hidden />
-          <p className="readout hidden truncate text-xs uppercase tracking-[0.2em] text-muted-foreground sm:block">
-            Local media node 01
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden />
-          <span className="readout text-[9px] uppercase tracking-widest text-foreground sm:text-[10px]">
-            system_ready
+    <div className="app-shell">
+      <a href="#player" className="skip-link">
+        Skip to player
+      </a>
+      <header className="app-header">
+        <a href="/" className="brand" aria-label="Onyx.Core home">
+          <span className="brand-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M8 3h8l5 9-5 9H8l-5-9 5-9Z"
+                stroke="currentColor"
+                strokeWidth="1.25"
+              />
+              <path d="m10 8 6 4-6 4V8Z" fill="currentColor" />
+            </svg>
           </span>
+          <span className="brand-wordmark">
+            ONYX<span className="text-chart-2">.</span>CORE
+          </span>
+        </a>
+        <div className="header-actions">
+          <span className="quiet-badge">Local-first by design</span>
+          <button
+            type="button"
+            className="icon-action"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts"
+            onClick={() => setShortcutsOpen(true)}
+          >
+            <Keyboard className="size-4" aria-hidden="true" />
+          </button>
         </div>
       </header>
 
-      <ClientOnly
-        fallback={
-          <div className="aspect-video w-full animate-pulse rounded-sm border border-hairline bg-panel" />
-        }
-      >
-        <MediaPlayer />
-      </ClientOnly>
-    </main>
+      <main id="player" tabIndex={-1}>
+        <div className="page-intro">
+          <p className="eyebrow">The personal cinema</p>
+          <h1>Press play. Settle in.</h1>
+          <p>Your files. Your screen. A little less in the way.</p>
+        </div>
+        <ClientOnly
+          fallback={
+            <div className="player-loading" role="status">
+              Preparing your player…
+            </div>
+          }
+        >
+          <MediaPlayer />
+        </ClientOnly>
+      </main>
+
+      <footer className="app-footer">
+        <span className="inline-flex items-center gap-2">
+          <ShieldCheck className="size-3.5 text-chart-2" aria-hidden="true" />
+          Local files stay on this device. Remote links use their source provider.
+        </span>
+        <span>Made for the picture. And the pause.</span>
+      </footer>
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+    </div>
   );
 }
