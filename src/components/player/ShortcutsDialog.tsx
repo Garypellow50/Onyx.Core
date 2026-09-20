@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: "Space / K", action: "Play or pause" },
@@ -28,17 +34,20 @@ export function ShortcutsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl border-hairline bg-panel p-6 sm:p-8">
+        <DialogHeader className="space-y-2 text-left">
+          <DialogTitle className="text-xl font-medium text-foreground">Keyboard shortcuts</DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+            Control playback without leaving the player. Shortcuts do not run while you type in a field or adjust the seek control.
+          </DialogDescription>
         </DialogHeader>
-        <ul className="grid gap-1.5 sm:grid-cols-2">
-          {SHORTCUTS.map((s) => (
-            <li key={s.keys} className="flex items-center justify-between gap-3 text-sm">
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
-                {s.keys}
+        <ul className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+          {SHORTCUTS.map((shortcut) => (
+            <li key={shortcut.keys} className="flex min-h-12 items-center justify-between gap-4 border-b border-hairline/70 py-2 text-sm">
+              <span className="leading-snug text-muted-foreground">{shortcut.action}</span>
+              <kbd className="shrink-0 rounded-lg border border-hairline bg-inset px-2.5 py-1.5 font-mono text-xs text-foreground shadow-sm">
+                {shortcut.keys}
               </kbd>
-              <span className="text-right text-muted-foreground">{s.action}</span>
             </li>
           ))}
         </ul>

@@ -1,4 +1,4 @@
-import { Music, Play, Video, X } from "lucide-react";
+import { ListVideo, Music, Play, Video, X } from "lucide-react";
 
 import { formatBytes } from "@/lib/player/format";
 import { cn } from "@/lib/utils";
@@ -20,84 +20,66 @@ export function Playlist({
 }) {
   const [view, setView] = usePersisted<ViewMode>("queue-view", "list");
 
-  if (items.length === 0) return null;
-
   return (
-    <section className="panel-machined min-w-0">
-      <header className="flex items-center justify-between gap-2 border-b border-hairline px-3 py-2.5 sm:px-4">
-        <h2 className="label-machined text-foreground">Source queue</h2>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-            {items.length} file{items.length === 1 ? "" : "s"}
-          </span>
-          <ViewToggle value={view} onChange={setView} />
+    <section className="playlist panel-machined min-w-0 overflow-hidden rounded-2xl border border-hairline bg-panel/80">
+      <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-foreground">Up next</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {items.length === 0 ? "Your queue is empty" : `${items.length} file${items.length === 1 ? "" : "s"}`}
+          </p>
         </div>
+        <ViewToggle value={view} onChange={setView} />
       </header>
 
-      {view !== "list" ? (
-        <ul
-          className={cn(
-            "grid max-h-[26rem] gap-3 overflow-auto p-3 sm:p-4",
-            view === "grid"
-              ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
-              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-          )}
-        >
+      {items.length === 0 ? (
+        <div className="flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full border border-hairline bg-inset text-primary">
+            <ListVideo className="size-5" aria-hidden />
+          </span>
+          <p className="mt-3 text-sm font-medium text-foreground">Nothing queued yet</p>
+          <p className="mt-1 max-w-60 text-xs leading-relaxed text-muted-foreground">
+            Add video or audio files to build a private playback queue.
+          </p>
+        </div>
+      ) : view === "list" ? (
+        <ul className="max-h-72 divide-y divide-hairline overflow-auto">
           {items.map((item) => {
             const active = item.id === currentId;
             const Icon = item.kind === "audio" ? Music : Video;
             return (
-              <li key={item.id} className="min-w-0">
-                <div
-                  className={cn(
-                    "group relative overflow-hidden rounded-sm border border-hairline bg-panel transition-colors hover:border-primary/50",
-                    active && "border-primary",
-                  )}
-                >
+              <li key={item.id} className={cn("relative", active && "bg-primary/5")}>
+                <div className={cn("flex min-h-16 items-center gap-2 px-3 py-2", active && "border-l-2 border-primary pl-[10px]")}>
                   <button
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    className="block w-full text-left"
+                    aria-current={active ? "true" : undefined}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Thumb
                       source={{ key: item.url ?? item.id, name: item.name, url: item.url, file: item.file }}
                       kind={item.kind}
-                      fill
-                      className="rounded-none border-0 border-b border-hairline"
                     />
-                    <div className="flex items-start gap-2 p-2">
-                      {active ? (
-                        <Play className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
-                      ) : (
-                        <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={cn(
-                            "text-xs text-foreground",
-                            view === "xl" ? "line-clamp-2" : "truncate",
-                          )}
-                        >
-                          {item.name}
-                        </p>
-                        <p className="readout mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                          {formatBytes(item.size)}
-                          {!item.native && (
-                            <span className="rounded-sm border border-chart-4/60 px-1 py-0.5 text-[9px] uppercase tracking-widest text-chart-4">
-                              remux
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
+                    <span className={cn("shrink-0", active ? "text-primary" : "text-muted-foreground")}>
+                      {active ? <Play className="size-4" aria-hidden /> : <Icon className="size-4" aria-hidden />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block break-words text-sm leading-snug text-foreground">{item.name}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>{formatBytes(item.size)}</span>
+                        {!item.native && (
+                          <span className="rounded-full border border-chart-4/50 px-2 py-0.5 text-chart-4">Remux needed</span>
+                        )}
+                      </span>
+                    </span>
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemove(item.id)}
-                    className="absolute right-1 top-1 rounded-sm bg-background/70 p-1 text-muted-foreground backdrop-blur-sm transition-colors hover:text-destructive"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label={`Remove ${item.name}`}
                   >
-                    <X className="size-3.5" aria-hidden />
+                    <X className="size-4" aria-hidden />
                   </button>
                 </div>
               </li>
@@ -105,55 +87,58 @@ export function Playlist({
           })}
         </ul>
       ) : (
-      <ul className="max-h-56 divide-y divide-hairline overflow-auto sm:max-h-64">
-        {items.map((item) => {
-          const active = item.id === currentId;
-          const Icon = item.kind === "audio" ? Music : Video;
-          return (
-            <li key={item.id}>
-              <div
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2.5 text-xs transition-colors hover:bg-inset sm:px-4",
-                  active && "border-l-2 border-l-primary bg-inset pl-[calc(0.75rem-2px)] sm:pl-[calc(1rem-2px)]",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onSelect(item.id)}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                >
-                  <Thumb
-                    source={{ key: item.url ?? item.id, name: item.name, url: item.url, file: item.file }}
-                    kind={item.kind}
-                  />
-                  {active ? (
-                    <Play className="size-3.5 shrink-0 text-primary" aria-hidden />
-                  ) : (
-                    <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <ul className={cn("grid max-h-[30rem] grid-cols-1 gap-3 overflow-auto p-3", view === "grid" && "sm:grid-cols-2")}>
+          {items.map((item) => {
+            const active = item.id === currentId;
+            const Icon = item.kind === "audio" ? Music : Video;
+            return (
+              <li key={item.id} className="min-w-0">
+                <div
+                  className={cn(
+                    "group relative overflow-hidden rounded-2xl border border-hairline bg-background/40 transition hover:border-primary/50",
+                    active && "border-primary bg-primary/5",
                   )}
-                  <span className="min-w-0 flex-1 truncate text-foreground">{item.name}</span>
-                  <span className="readout shrink-0 text-[10px] text-muted-foreground">
-                    {formatBytes(item.size)}
-                  </span>
-                  {!item.native && (
-                    <span className="readout shrink-0 rounded-sm border border-chart-4/60 px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-chart-4">
-                      remux
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelect(item.id)}
+                    aria-current={active ? "true" : undefined}
+                    className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    <Thumb
+                      source={{ key: item.url ?? item.id, name: item.name, url: item.url, file: item.file }}
+                      kind={item.kind}
+                      fill
+                      className="rounded-none border-0 border-b border-hairline"
+                    />
+                    <span className="flex items-start gap-2.5 p-3 pr-12">
+                      {active ? (
+                        <Play className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      ) : (
+                        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block break-words text-sm leading-snug text-foreground">{item.name}</span>
+                        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>{formatBytes(item.size)}</span>
+                          {!item.native && <span className="text-chart-4">Remux needed</span>}
+                        </span>
+                      </span>
                     </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemove(item.id)}
-                  className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-destructive"
-                  aria-label={`Remove ${item.name}`}
-                >
-                  <X className="size-3.5" aria-hidden />
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    className="absolute right-1.5 top-1.5 flex size-11 items-center justify-center rounded-xl bg-background/80 text-muted-foreground backdrop-blur-sm transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`Remove ${item.name}`}
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );
