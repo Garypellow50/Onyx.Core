@@ -1,14 +1,8 @@
-import { useRef, useState, type DragEvent } from "react";
-import { FileVideo, FolderOpen, Loader2, UploadCloud } from "lucide-react";
-
+import { useId, useRef, useState, type DragEvent } from "react";
+import { ArrowRight, ArrowUpRight, FileVideo, FolderOpen, Link2, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function SourceIntake({
-  onFiles,
-  onUrl,
-  busy,
-  error,
-}: {
+export function SourceIntake({ onFiles, onUrl, busy, error }: {
   onFiles: (files: File[]) => void;
   onUrl: (url: string) => void;
   busy: boolean;
@@ -16,128 +10,107 @@ export function SourceIntake({
 }) {
   const [url, setUrl] = useState("");
   const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
+  const id = useId();
+  const urlId = `${id}-url`;
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
 
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
+  function handleDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
+    dragDepth.current = 0;
     setDragging(false);
+    if (busy) return;
     const files = Array.from(event.dataTransfer.files);
-    if (files.length > 0) onFiles(files);
+    if (files.length) onFiles(files);
   }
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
+    <section
+      id="media-intake"
+      tabIndex={-1}
+      aria-labelledby={`${id}-heading`}
+      aria-busy={busy}
+      className={cn("onyx-intake panel-machined", dragging && "onyx-intake-dragging")}
+      onDragEnter={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        dragDepth.current += 1;
+        if (!busy) setDragging(true);
       }}
-      onDragLeave={() => setDragging(false)}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = busy ? "none" : "copy";
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragging(false);
+      }}
       onDrop={handleDrop}
-      className={cn(
-        "panel-machined min-w-0 p-4 transition-colors sm:p-5",
-        dragging && "border-primary",
-      )}
     >
-      <h2 className="label-machined mb-4 text-foreground">Intake module</h2>
+      <header className="onyx-panel-heading">
+        <div><p className="onyx-eyebrow">START HERE</p><h2 id={`${id}-heading`}>Bring your own.</h2></div>
+        <span className="onyx-panel-symbol" aria-hidden="true"><ArrowUpRight size={20} /></span>
+      </header>
+      <p className="onyx-panel-description">One file or a whole collection. Make yourself at home.</p>
 
-      <div className="flex flex-col gap-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (url.trim()) onUrl(url.trim());
-          }}
-        >
-          <label
-            htmlFor="intake-url"
-            className="readout mb-1.5 block text-[10px] uppercase tracking-widest text-muted-foreground"
-          >
-            Remote url · file or folder · drive, onedrive, dropbox
-          </label>
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-            <input
-              id="intake-url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://host.example/movie.mp4 or a shared folder link"
-              className="readout min-w-0 flex-1 rounded-sm border border-hairline bg-inset px-3 py-2 text-xs text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={busy || url.trim() === ""}
-              className="label-machined inline-flex items-center justify-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/85 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {busy ? <Loader2 className="size-3 animate-spin" aria-hidden /> : null}
-              Load
-            </button>
-          </div>
-        </form>
-
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          className="group flex w-full flex-col items-center justify-center gap-2 rounded-sm border border-dashed border-hairline py-5 transition-colors hover:bg-inset sm:py-7"
-        >
-          <UploadCloud
-            className="size-6 text-muted-foreground transition-colors group-hover:text-primary"
-            aria-hidden
+      <button type="button" className="onyx-dropzone" disabled={busy} onClick={() => fileInput.current?.click()}>
+        <span className="onyx-drop-icon" aria-hidden="true"><Plus size={24} strokeWidth={1.4} /></span>
+        <span className="onyx-drop-title">{dragging ? "Let it land here" : "Drop your media here"}</span>
+        <span className="onyx-drop-hint">or browse files on your device</span>
+        <span className="onyx-drop-formats">VIDEO <span aria-hidden="true">/</span> AUDIO <span aria-hidden="true">/</span> CAPTIONS</span>
+      </button>
+      <div className="onyx-intake-actions">
+        <button type="button" className="onyx-button onyx-button-primary" disabled={busy} onClick={() => fileInput.current?.click()}><FileVideo size={16} aria-hidden="true" /> Open files</button>
+        <button type="button" className="onyx-button" disabled={busy} onClick={() => folderInput.current?.click()}><FolderOpen size={16} aria-hidden="true" /> Folder</button>
+      </div>
+      <div className="onyx-divider"><span>or open a link</span></div>
+      <form onSubmit={(event) => { event.preventDefault(); if (!busy && url.trim()) onUrl(url.trim()); }}>
+        <label htmlFor={urlId} className="onyx-field-label">Media or shared folder URL</label>
+        <div className="onyx-url-field">
+          <Link2 size={16} aria-hidden="true" />
+          <input
+            id={urlId}
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck={false}
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="Paste a link..."
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+            disabled={busy}
           />
-          <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-            Drag &amp; drop local source
-          </span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            className="readout inline-flex flex-1 items-center justify-center gap-1.5 rounded-sm border border-hairline px-3 py-2 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-          >
-            <FileVideo className="size-3.5" aria-hidden />
-            Files
-          </button>
-          <button
-            type="button"
-            onClick={() => folderInput.current?.click()}
-            className="readout inline-flex flex-1 items-center justify-center gap-1.5 rounded-sm border border-hairline px-3 py-2 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-          >
-            <FolderOpen className="size-3.5" aria-hidden />
-            Folder
+          <button type="submit" disabled={busy || !url.trim()} aria-label={busy ? "Opening media link" : "Open media link"} title="Open link">
+            {busy ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <ArrowRight size={17} aria-hidden="true" />}
           </button>
         </div>
-
-        {error && (
-          <p className="rounded-sm border border-destructive/50 bg-destructive/10 p-3 text-xs leading-relaxed text-destructive">
-            {error}
-          </p>
-        )}
-      </div>
-
-      <input
-        ref={fileInput}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length) onFiles(files);
-          e.target.value = "";
-        }}
-      />
+        <p id={hintId} className="onyx-field-hint">Direct links, Drive, OneDrive, and Dropbox.</p>
+      </form>
+      {busy && <p className="onyx-inline-status" role="status">Opening your media...</p>}
+      {error && <p id={errorId} className="onyx-error" role="alert">{error}</p>}
+      <input ref={fileInput} type="file" multiple hidden onChange={(event) => {
+        const files = Array.from(event.target.files ?? []);
+        if (!busy && files.length) onFiles(files);
+        event.target.value = "";
+      }} />
       <input
         ref={folderInput}
         type="file"
         multiple
         hidden
-        // @ts-expect-error non-standard but supported in all major browsers
+        // @ts-expect-error webkitdirectory is supported by browsers but absent from React's input attributes.
         webkitdirectory="true"
         directory="true"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length) onFiles(files);
-          e.target.value = "";
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (!busy && files.length) onFiles(files);
+          event.target.value = "";
         }}
       />
-    </div>
+    </section>
   );
 }
