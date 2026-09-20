@@ -23,8 +23,10 @@ export function ViewToggle({
   return (
     <div
       role="group"
-      aria-label="Queue view"
-      className={cn("flex shrink-0 items-center rounded-xl border border-hairline bg-background/40 p-0.5", className)}
+      aria-label="View layout"
+      onKeyDown={(event) => event.stopPropagation()}
+      onKeyUp={(event) => event.stopPropagation()}
+      className={cn("flex shrink-0 items-center gap-0.5 rounded-xl border border-border bg-background/40 p-0.5", className)}
     >
       {MODES.map(({ id, label, Icon }) => (
         <button
@@ -35,8 +37,10 @@ export function ViewToggle({
           title={label}
           aria-pressed={value === id}
           className={cn(
-            "flex size-9 min-h-11 min-w-11 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-inset hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 sm:min-w-9",
-            value === id && "bg-primary/10 text-primary shadow-sm",
+            "flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            value === id
+              ? "bg-muted text-primary"
+              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
           )}
         >
           <Icon className="size-4" aria-hidden />
