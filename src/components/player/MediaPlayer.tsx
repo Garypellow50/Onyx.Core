@@ -33,7 +33,7 @@ import { subtitleFileToTrack, type SubtitleTrack } from "@/lib/player/subtitles"
 import { usePersisted, readPersisted, writePersisted } from "@/lib/player/ui-state";
 import { relayUrl } from "@/lib/player/link";
 import { useTouchGestures } from "./useTouchGestures";
-import { Maximize, Minimize } from "lucide-react";
+import { ChevronDown, Maximize, Minimize, Play } from "lucide-react";
 
 const SKIP_SECONDS = 10;
 const RECOVERED_TRACK_ID = "__recovered_aac";
@@ -1054,8 +1054,13 @@ export function MediaPlayer() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+      if (event.defaultPrevented) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target?.closest(
+          'input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="textbox"], [role="combobox"], [role="menu"], [role="menubar"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="slider"]',
+        )
+      ) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       const video = videoRef.current;
@@ -1198,13 +1203,42 @@ export function MediaPlayer() {
   );
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 sm:gap-6">
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-10">
+    <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+      <header className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Your screening room
+          </h1>
+          <p className="mt-2 truncate text-sm text-muted-foreground" title={current?.name}>
+            {current?.name ?? "No media selected"}
+          </p>
+        </div>
+        <p role="status" className="flex shrink-0 items-center gap-2 self-start rounded-full border border-hairline bg-panel px-3 py-1.5 text-xs text-muted-foreground sm:self-auto">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-1.5 rounded-full",
+              current && src && playing ? "bg-primary" : "bg-muted-foreground",
+            )}
+          />
+          {!current
+            ? "Ready when you are"
+            : remux?.phase === "error"
+              ? "Preparation failed"
+              : !src
+                ? "Preparing media"
+                : playing
+                  ? "Playing"
+                  : "Paused"}
+        </p>
+      </header>
+
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
         {/* Left: stage + transport */}
         <div
           ref={shellRef}
           className={cn(
-            "relative flex min-w-0 flex-col gap-3 sm:gap-4 lg:col-span-6",
+            "relative flex min-w-0 flex-col gap-3 sm:gap-4",
             isFullscreen && "gap-0 bg-black",
             isFullscreen && !controlsVisible && "cursor-none",
           )}
@@ -1212,8 +1246,9 @@ export function MediaPlayer() {
           <div
             ref={stageRef}
             className={cn(
-              "relative w-full touch-none select-none overflow-hidden bg-black",
-              isFullscreen ? "h-full flex-1" : "aspect-video rounded-sm border border-hairline",
+              "cinema-stage relative w-full select-none overflow-hidden bg-black",
+              src || remux ? "touch-none" : "min-h-[280px] touch-auto",
+              isFullscreen ? "h-full flex-1" : "aspect-video rounded-2xl border border-hairline",
             )}
             onDoubleClick={() => {
               if (lastPointerType.current === "mouse") toggleFullscreen();
@@ -1411,14 +1446,32 @@ export function MediaPlayer() {
                 {statsVisible && <StatsOverlay stats={stats} />}
               </>
             ) : (
-              <div className="absolute inset-4 flex flex-col items-center justify-center gap-3 border border-dashed border-hairline/70 px-6 text-center">
-                <span className="flex size-12 items-center justify-center border border-hairline">
-                  <span className="size-4 bg-primary" aria-hidden />
-                </span>
-                <p className="label-machined text-muted-foreground">No media loaded</p>
-                <p className="readout text-[10px] italic text-muted-foreground/70">
-                  Awaiting binary stream input — original bytes, no re-encode
-                </p>
+              <div className="cinema-empty absolute inset-0 flex flex-col items-center justify-center px-6 py-6 text-center">
+                <div className="cinema-aperture pointer-events-none" aria-hidden="true" />
+                <div className="relative z-10 flex max-w-md flex-col items-center">
+                  <span className="mb-4 grid size-14 place-items-center rounded-full border border-hairline bg-panel/60 text-primary sm:mb-5 sm:size-16" aria-hidden="true">
+                    <Play className="ml-0.5 size-6" strokeWidth={1.5} />
+                  </span>
+                  <h2 className="font-display text-xl font-medium tracking-tight text-foreground sm:text-2xl">
+                    Your media. A quieter space.
+                  </h2>
+                  <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                    Open a file, choose a folder, or add a public link to begin.
+                  </p>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onPointerUp={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      document.getElementById("intake-files")?.click();
+                    }}
+                    className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    Choose media
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1499,13 +1552,20 @@ export function MediaPlayer() {
           )}
         </div>
 
-        {/* Right: intake + queue console rail */}
-        <div className="flex min-w-0 flex-col gap-4 sm:gap-6 lg:col-span-4">
+        {/* Right: intake, queue, then optional playback details. */}
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <SourceIntake
             onFiles={(files) => void addFiles(files)}
             onUrl={(url) => void addUrl(url)}
             busy={intakeBusy}
             error={intakeError}
+          />
+
+          <Playlist
+            items={items}
+            currentId={currentId}
+            onSelect={setCurrentId}
+            onRemove={removeItem}
           />
 
           <SessionReadout
@@ -1515,13 +1575,6 @@ export function MediaPlayer() {
             onToggleStats={() => setStatsVisible((v) => !v)}
             name={current?.name ?? null}
             rotation={rotation}
-          />
-
-          <Playlist
-            items={items}
-            currentId={currentId}
-            onSelect={setCurrentId}
-            onRemove={removeItem}
           />
         </div>
       </div>
@@ -1541,7 +1594,7 @@ export function MediaPlayer() {
   );
 }
 
-/** Right-rail instrument readout: what is loaded and how it is decoding. */
+/** Optional playback details, kept quiet until requested. */
 function SessionReadout({
   container,
   stats,
@@ -1567,37 +1620,43 @@ function SessionReadout({
   ];
 
   return (
-    <section className="panel-machined p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="label-machined text-foreground">Playback stats</h2>
+    <details className="group rounded-2xl border border-hairline bg-panel">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span>Playback details</span>
+        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+      </summary>
+
+      <div className="border-t border-hairline px-5 pb-5 pt-4">
+        <p className="mb-4 truncate text-sm text-foreground" title={name ?? undefined}>
+          {name ?? <span className="text-muted-foreground">No source selected</span>}
+        </p>
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex min-w-0 flex-col gap-1">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="readout break-words text-xs leading-relaxed text-foreground">
+                {name && value && value !== "—" ? value : "Not available"}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
         <button
           type="button"
           onClick={onToggleStats}
+          aria-pressed={statsVisible}
           className={cn(
-            "readout rounded-sm border px-1.5 py-0.5 text-[9px] uppercase tracking-widest transition-colors",
+            "mt-5 flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             statsVisible
-              ? "border-primary text-primary"
-              : "border-hairline text-muted-foreground hover:text-foreground",
+              ? "border-primary/50 bg-primary/10 text-primary"
+              : "border-hairline text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
-          {statsVisible ? "live" : "overlay off"}
+          <span>Stats overlay</span>
+          <span className="text-xs">{statsVisible ? "On" : "Off"}</span>
         </button>
       </div>
-
-      <p className="readout mb-4 truncate text-[11px] text-foreground">
-        {name ?? <span className="text-muted-foreground">no source selected</span>}
-      </p>
-
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex flex-col gap-0.5">
-            <dt className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
-              {label}
-            </dt>
-            <dd className="readout truncate text-xs text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    </details>
   );
 }
