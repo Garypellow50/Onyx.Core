@@ -31,6 +31,29 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Production build
         run: npm run build
+  studio-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Lint redesigned interface
+        run: >-
+          npx eslint
+          src/routes/index.tsx
+          src/routes/__root.tsx
+          src/components/player/MediaPlayer.tsx
+          src/components/player/ControlBar.tsx
+          src/components/player/SourceIntake.tsx
+          src/components/player/Playlist.tsx
+          src/components/player/LogPanel.tsx
+          src/components/player/ViewToggle.tsx
+      - name: Check theme formatting
+        run: npx prettier --check src/styles.css
   static-analysis:
     runs-on: ubuntu-latest
     timeout-minutes: 10
