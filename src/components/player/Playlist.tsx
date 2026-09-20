@@ -77,9 +77,15 @@ export function Playlist({
                     />
                     <div className="flex items-start gap-2 p-2">
                       {active ? (
-                        <Play className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+                        <Play
+                          className="mt-0.5 size-3.5 shrink-0 text-primary"
+                          aria-hidden
+                        />
                       ) : (
-                        <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        <Icon
+                          className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
                       )}
                       <div className="min-w-0 flex-1">
                         <p
@@ -145,12 +151,18 @@ export function Playlist({
                       kind={item.kind}
                     />
                     <span className="min-w-0 flex-1">
-                      <span title={item.name} className="block truncate text-foreground">
+                      <span
+                        title={item.name}
+                        className="block truncate text-foreground"
+                      >
                         {item.name}
                       </span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
                         {active ? (
-                          <Play className="size-3.5 shrink-0 text-primary" aria-hidden />
+                          <Play
+                            className="size-3.5 shrink-0 text-primary"
+                            aria-hidden
+                          />
                         ) : (
                           <Icon className="size-3.5 shrink-0" aria-hidden />
                         )}

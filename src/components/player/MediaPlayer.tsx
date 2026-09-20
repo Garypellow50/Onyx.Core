@@ -29,8 +29,15 @@ import {
   type FolderResult,
 } from "@/lib/player/folder";
 import { FolderPicker } from "./FolderPicker";
-import { subtitleFileToTrack, type SubtitleTrack } from "@/lib/player/subtitles";
-import { usePersisted, readPersisted, writePersisted } from "@/lib/player/ui-state";
+import {
+  subtitleFileToTrack,
+  type SubtitleTrack,
+} from "@/lib/player/subtitles";
+import {
+  usePersisted,
+  readPersisted,
+  writePersisted,
+} from "@/lib/player/ui-state";
 import { relayUrl } from "@/lib/player/link";
 import { useTouchGestures } from "./useTouchGestures";
 import { ChevronDown, Maximize, Minimize, Play } from "lucide-react";
@@ -48,7 +55,9 @@ export function MediaPlayer() {
   const shellRef = useRef<HTMLDivElement>(null);
   const recoveredAudioRef = useRef<HTMLAudioElement>(null);
   const objectUrlRef = useRef<string | null>(null);
-  const remuxRef = useRef<import("@/lib/player/stream-remux").RemuxHandle | null>(null);
+  const remuxRef = useRef<
+    import("@/lib/player/stream-remux").RemuxHandle | null
+  >(null);
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -72,7 +81,10 @@ export function MediaPlayer() {
   const [activeSubtitle, setActiveSubtitle] = useState(-1);
   const [cueText, setCueText] = useState("");
   const [subtitleSize, setSubtitleSize] = usePersisted("subtitleSize", 28);
-  const [subtitleOffset, setSubtitleOffset] = usePersisted("subtitleOffset", 16);
+  const [subtitleOffset, setSubtitleOffset] = usePersisted(
+    "subtitleOffset",
+    16,
+  );
   const [audioTracks, setAudioTracks] = useState<AudioTrackInfo[]>([]);
   const [audioIssue, setAudioIssue] = useState<string | null>(null);
   const [recoveredAudio, setRecoveredAudio] = useState<string | null>(null);
@@ -83,9 +95,16 @@ export function MediaPlayer() {
     startedAt: number;
     eta: number | null;
   } | null>(null);
-  const [audioSource, setAudioSource] = useState<"original" | "recovered">("original");
-  const [preferredAudio, setPreferredAudio] = usePersisted<string | null>("audioTrack", null);
-  const [remux, setRemux] = useState<import("@/lib/player/stream-remux").RemuxStatus | null>(null);
+  const [audioSource, setAudioSource] = useState<"original" | "recovered">(
+    "original",
+  );
+  const [preferredAudio, setPreferredAudio] = usePersisted<string | null>(
+    "audioTrack",
+    null,
+  );
+  const [remux, setRemux] = useState<
+    import("@/lib/player/stream-remux").RemuxStatus | null
+  >(null);
   const usingRecoveredRef = useRef(false);
   const autoRecoveredRef = useRef<string | null>(null);
   const [recoveryElapsed, setRecoveryElapsed] = useState(0);
@@ -108,7 +127,8 @@ export function MediaPlayer() {
   }, [recovery?.eta]);
 
   useEffect(() => {
-    usingRecoveredRef.current = audioSource === "recovered" && Boolean(recoveredAudio);
+    usingRecoveredRef.current =
+      audioSource === "recovered" && Boolean(recoveredAudio);
   }, [audioSource, recoveredAudio]);
 
   const [statsVisible, setStatsVisible] = usePersisted("statsVisible", false);
@@ -128,7 +148,10 @@ export function MediaPlayer() {
     cores: 1,
   });
 
-  const current = useMemo(() => items.find((i) => i.id === currentId) ?? null, [items, currentId]);
+  const current = useMemo(
+    () => items.find((i) => i.id === currentId) ?? null,
+    [items, currentId],
+  );
   const currentIndex = useMemo(
     () => items.findIndex((i) => i.id === currentId),
     [items, currentId],
@@ -181,7 +204,11 @@ export function MediaPlayer() {
       try {
         const track = await subtitleFileToTrack(file);
         setSubtitles((prev) => [...prev, track]);
-        log.ok("subtitles", `Converted ${file.name} to WebVTT`, `${track.cues} cues`);
+        log.ok(
+          "subtitles",
+          `Converted ${file.name} to WebVTT`,
+          `${track.cues} cues`,
+        );
       } catch (err) {
         log.error("subtitles", `Could not parse ${file.name}`, err);
       }
@@ -263,11 +290,15 @@ export function MediaPlayer() {
       const newItems = children
         .filter(
           (child) =>
-            !queuedUrls.has(child.needsRelay ? relayUrl(child.url, child.name) : child.url),
+            !queuedUrls.has(
+              child.needsRelay ? relayUrl(child.url, child.name) : child.url,
+            ),
         )
         .map(itemFromChild);
       if (newItems.length === 0) {
-        setIntakeError("All supported files from that shared folder are already in the queue.");
+        setIntakeError(
+          "All supported files from that shared folder are already in the queue.",
+        );
         setFolderListing(null);
         return;
       }
@@ -304,7 +335,11 @@ export function MediaPlayer() {
     if (support.playable) {
       log.ok("probe", `Browser can decode this file`, support.reason);
     } else {
-      log.warn("probe", `Browser cannot decode this container directly`, support.reason);
+      log.warn(
+        "probe",
+        `Browser cannot decode this container directly`,
+        support.reason,
+      );
     }
 
     if (!support.playable) {
@@ -312,7 +347,11 @@ export function MediaPlayer() {
       // through the windowed remuxer instead of handing the element bytes it
       // will refuse.
       let cancelled = false;
-      setRemux({ phase: "probe", message: "Preparing the streaming remux", ratio: 0 });
+      setRemux({
+        phase: "probe",
+        message: "Preparing the streaming remux",
+        ratio: 0,
+      });
       void (async () => {
         try {
           const strategy = remuxStrategy(current.name);
@@ -369,7 +408,10 @@ export function MediaPlayer() {
       const url = URL.createObjectURL(current.file);
       objectUrlRef.current = url;
       setSrc(url);
-      log.info("source", `Reading ${current.name} in place from disk (zero copy)`);
+      log.info(
+        "source",
+        `Reading ${current.name} in place from disk (zero copy)`,
+      );
     } else if (current.url) {
       setSrc(current.url);
       log.info("source", `Streaming ${current.name} over HTTP range requests`);
@@ -394,7 +436,9 @@ export function MediaPlayer() {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    const resumeKey = current ? `mp:resume:${current.name}:${current.size ?? 0}` : null;
+    const resumeKey = current
+      ? `mp:resume:${current.name}:${current.size ?? 0}`
+      : null;
 
     function readBuffered() {
       const ranges: [number, number][] = [];
@@ -419,7 +463,10 @@ export function MediaPlayer() {
         const saved = Number(localStorage.getItem(resumeKey) ?? "0");
         if (saved > 5 && saved < video.duration - 10) {
           video.currentTime = saved;
-          log.info("playback", `Resumed at ${saved.toFixed(0)}s from your last session`);
+          log.info(
+            "playback",
+            `Resumed at ${saved.toFixed(0)}s from your last session`,
+          );
         }
       }
     };
@@ -433,8 +480,10 @@ export function MediaPlayer() {
       log.debug("playback", "pause");
       if (resumeKey) localStorage.setItem(resumeKey, String(video.currentTime));
     };
-    const onWaiting = () => log.warn("playback", "Buffer starved — waiting for more data");
-    const onSeeking = () => log.debug("playback", `Seeking to ${video.currentTime.toFixed(2)}s`);
+    const onWaiting = () =>
+      log.warn("playback", "Buffer starved — waiting for more data");
+    const onSeeking = () =>
+      log.debug("playback", `Seeking to ${video.currentTime.toFixed(2)}s`);
     const onRateChange = () => setRate(video.playbackRate);
     const onVolumeChange = () => {
       // While the recovered sink is live the video element is held at zero, so
@@ -449,7 +498,11 @@ export function MediaPlayer() {
         const explain =
           "This browser could not open the file's streams. Usually the container or one of its codecs (AC-3/E-AC-3/DTS audio, HEVC video) has no decoder here — a remux/transcode pass is needed.";
         setAudioIssue(explain);
-        log.error("playback", "Demuxer could not open this file", `${raw} — ${explain}`);
+        log.error(
+          "playback",
+          "Demuxer could not open this file",
+          `${raw} — ${explain}`,
+        );
         return;
       }
       log.error(
@@ -505,7 +558,12 @@ export function MediaPlayer() {
     const key = `mp:resume:${current.name}:${current.size ?? 0}`;
     const save = () => {
       const video = videoRef.current;
-      if (!video || !Number.isFinite(video.currentTime) || video.currentTime < 3) return;
+      if (
+        !video ||
+        !Number.isFinite(video.currentTime) ||
+        video.currentTime < 3
+      )
+        return;
       localStorage.setItem(key, String(video.currentTime));
     };
     const id = window.setInterval(save, 5000);
@@ -525,13 +583,21 @@ export function MediaPlayer() {
 
   function readAudioTracks(video: HTMLVideoElement) {
     const list = (video as unknown as { audioTracks?: unknown }).audioTracks as
-      | (ArrayLike<{ id: string; label: string; language: string; enabled: boolean }> & {
+      | (ArrayLike<{
+          id: string;
+          label: string;
+          language: string;
+          enabled: boolean;
+        }> & {
           length: number;
         })
       | undefined;
     if (!list || list.length === 0) {
       setAudioTracks([]);
-      log.debug("audio", "This browser exposes no separate audio tracks for this file");
+      log.debug(
+        "audio",
+        "This browser exposes no separate audio tracks for this file",
+      );
       return;
     }
     const tracks: AudioTrackInfo[] = [];
@@ -545,7 +611,11 @@ export function MediaPlayer() {
       });
     }
     setAudioTracks(tracks);
-    log.ok("audio", `Found ${tracks.length} audio track(s)`, tracks.map((t) => t.label).join(", "));
+    log.ok(
+      "audio",
+      `Found ${tracks.length} audio track(s)`,
+      tracks.map((t) => t.label).join(", "),
+    );
   }
 
   /* --------------------------------------------------- silent-audio diagnosis */
@@ -565,15 +635,19 @@ export function MediaPlayer() {
       if (cancelled || video.paused) return;
       // A remuxed stream already carries a browser-decodable AAC track.
       if (remuxRef.current) return;
-      const decoded = (video as unknown as { webkitAudioDecodedByteCount?: number })
-        .webkitAudioDecodedByteCount;
-      const hasAudio = (video as unknown as { mozHasAudio?: boolean }).mozHasAudio;
+      const decoded = (
+        video as unknown as { webkitAudioDecodedByteCount?: number }
+      ).webkitAudioDecodedByteCount;
+      const hasAudio = (video as unknown as { mozHasAudio?: boolean })
+        .mozHasAudio;
       const silent = decoded === 0 || hasAudio === false;
       if (!silent) {
         log.ok(
           "audio",
           "Audio is decoding",
-          decoded === undefined ? "decoder byte counter not exposed" : `${decoded} bytes decoded`,
+          decoded === undefined
+            ? "decoder byte counter not exposed"
+            : `${decoded} bytes decoded`,
         );
         return;
       }
@@ -618,9 +692,16 @@ export function MediaPlayer() {
   const recoverAudio = useCallback(async () => {
     if (!current) return;
     const startedAt = performance.now();
-    setRecovery({ busy: true, ratio: 0, message: "Starting the audio pass", startedAt, eta: null });
+    setRecovery({
+      busy: true,
+      ratio: 0,
+      message: "Starting the audio pass",
+      startedAt,
+      eta: null,
+    });
     try {
-      const { extractPlayableAudio } = await import("@/lib/player/audio-transcode");
+      const { extractPlayableAudio } =
+        await import("@/lib/player/audio-transcode");
       const url = await extractPlayableAudio(
         { name: current.name, file: current.file, url: current.url },
         {},
@@ -628,8 +709,15 @@ export function MediaPlayer() {
           // Linear extrapolation from work done so far — good enough for an ETA
           // and it settles quickly once the encode leg starts.
           const elapsed = (performance.now() - startedAt) / 1000;
-          const eta = p.ratio > 0.02 ? (elapsed / p.ratio) * (1 - p.ratio) : null;
-          setRecovery({ busy: true, ratio: p.ratio, message: p.message, startedAt, eta });
+          const eta =
+            p.ratio > 0.02 ? (elapsed / p.ratio) * (1 - p.ratio) : null;
+          setRecovery({
+            busy: true,
+            ratio: p.ratio,
+            message: p.message,
+            startedAt,
+            eta,
+          });
         },
       );
       setRecoveredAudio(url);
@@ -662,7 +750,8 @@ export function MediaPlayer() {
   useEffect(() => {
     const video = videoRef.current;
     const audio = recoveredAudioRef.current;
-    if (!video || !audio || !recoveredAudio || audioSource !== "recovered") return;
+    if (!video || !audio || !recoveredAudio || audioSource !== "recovered")
+      return;
 
     let detach: (() => void) | null = null;
     let cancelled = false;
@@ -727,14 +816,24 @@ export function MediaPlayer() {
       if (!video) return;
       const quality = video.getVideoPlaybackQuality?.();
       const bufferedEnd =
-        video.buffered.length > 0 ? video.buffered.end(video.buffered.length - 1) : 0;
-      const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
-        ?.usedJSHeapSize;
-      const bitrate = current?.size && video.duration > 0 ? (current.size * 8) / video.duration : 0;
+        video.buffered.length > 0
+          ? video.buffered.end(video.buffered.length - 1)
+          : 0;
+      const memory = (
+        performance as unknown as { memory?: { usedJSHeapSize: number } }
+      ).memory?.usedJSHeapSize;
+      const bitrate =
+        current?.size && video.duration > 0
+          ? (current.size * 8) / video.duration
+          : 0;
       setStats({
         resolution:
-          video.videoWidth > 0 ? `${video.videoWidth}x${video.videoHeight}` : "audio only",
-        fps: quality ? quality.totalVideoFrames / Math.max(video.currentTime, 0.001) : 0,
+          video.videoWidth > 0
+            ? `${video.videoWidth}x${video.videoHeight}`
+            : "audio only",
+        fps: quality
+          ? quality.totalVideoFrames / Math.max(video.currentTime, 0.001)
+          : 0,
         droppedFrames: quality?.droppedVideoFrames ?? 0,
         totalFrames: quality?.totalVideoFrames ?? 0,
         bufferedAhead: Math.max(0, bufferedEnd - video.currentTime),
@@ -785,7 +884,9 @@ export function MediaPlayer() {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused)
-      void video.play().catch((err) => log.error("playback", "play() rejected", err));
+      void video
+        .play()
+        .catch((err) => log.error("playback", "play() rejected", err));
     else video.pause();
   }, []);
 
@@ -861,7 +962,9 @@ export function MediaPlayer() {
     }
     void shell.requestFullscreen().then(() => {
       const orientation = (
-        screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }
+        screen as unknown as {
+          orientation?: { lock?: (o: string) => Promise<void> };
+        }
       ).orientation;
       orientation?.lock?.("landscape").catch(() => {
         log.debug("view", "Orientation lock is not available on this device");
@@ -913,7 +1016,10 @@ export function MediaPlayer() {
     shownAt.current = performance.now();
     setControlsVisible(true);
     if (playingRef.current) {
-      hideTimer.current = window.setTimeout(() => setControlsVisible(false), CONTROLS_HOLD_MS);
+      hideTimer.current = window.setTimeout(
+        () => setControlsVisible(false),
+        CONTROLS_HOLD_MS,
+      );
     }
   }, []);
 
@@ -952,7 +1058,9 @@ export function MediaPlayer() {
     } else {
       void video
         .requestPictureInPicture()
-        .catch((err) => log.warn("view", "Picture-in-picture unavailable", err));
+        .catch((err) =>
+          log.warn("view", "Picture-in-picture unavailable", err),
+        );
     }
   }, []);
 
@@ -975,7 +1083,11 @@ export function MediaPlayer() {
 
   const cycleSubtitle = useCallback(() => {
     setActiveSubtitle((prev) =>
-      subtitles.length === 0 ? -1 : prev + 1 >= subtitles.length ? -1 : prev + 1,
+      subtitles.length === 0
+        ? -1
+        : prev + 1 >= subtitles.length
+          ? -1
+          : prev + 1,
     );
   }, [subtitles.length]);
 
@@ -1010,7 +1122,9 @@ export function MediaPlayer() {
       }
 
       const list = (
-        video as unknown as { audioTracks?: ArrayLike<{ id: string; enabled: boolean }> }
+        video as unknown as {
+          audioTracks?: ArrayLike<{ id: string; enabled: boolean }>;
+        }
       ).audioTracks;
       if (list) {
         for (let i = 0; i < list.length; i++) {
@@ -1018,7 +1132,9 @@ export function MediaPlayer() {
           track.enabled = (track.id || String(i)) === id;
         }
       }
-      setAudioTracks((prev) => prev.map((t) => ({ ...t, enabled: t.id === id })));
+      setAudioTracks((prev) =>
+        prev.map((t) => ({ ...t, enabled: t.id === id })),
+      );
       log.ok("audio", `Switched audio track to ${id}`);
     },
     [audioSource, muted, recoveredAudio, volume, setPreferredAudio],
@@ -1060,7 +1176,8 @@ export function MediaPlayer() {
         target?.closest(
           'input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="textbox"], [role="combobox"], [role="menu"], [role="menubar"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="slider"]',
         )
-      ) return;
+      )
+        return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       const video = videoRef.current;
@@ -1194,7 +1311,11 @@ export function MediaPlayer() {
   const lastPointerType = useRef<string>("mouse");
 
   const objectFit =
-    fit === "fill" ? "fill" : fit === "cover" || fit === "zoom" ? "cover" : "contain";
+    fit === "fill"
+      ? "fill"
+      : fit === "cover" || fit === "zoom"
+        ? "cover"
+        : "contain";
   const scale = rotationScale * (fit === "zoom" ? 1.25 : 1);
   // Status cards ride with the transport: when the bar fades, they fade too.
   const overlayFade = cn(
@@ -1209,11 +1330,17 @@ export function MediaPlayer() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Your screening room
           </h1>
-          <p className="mt-2 truncate text-sm text-muted-foreground" title={current?.name}>
+          <p
+            className="mt-2 truncate text-sm text-muted-foreground"
+            title={current?.name}
+          >
             {current?.name ?? "No media selected"}
           </p>
         </div>
-        <p role="status" className="flex shrink-0 items-center gap-2 self-start rounded-full border border-hairline bg-panel px-3 py-1.5 text-xs text-muted-foreground sm:self-auto">
+        <p
+          role="status"
+          className="flex shrink-0 items-center gap-2 self-start rounded-full border border-hairline bg-panel px-3 py-1.5 text-xs text-muted-foreground sm:self-auto"
+        >
           <span
             aria-hidden="true"
             className={cn(
@@ -1248,7 +1375,9 @@ export function MediaPlayer() {
             className={cn(
               "cinema-stage relative w-full select-none overflow-hidden bg-black",
               src || remux ? "touch-none" : "min-h-[340px] touch-auto",
-              isFullscreen ? "h-full flex-1" : "aspect-video rounded-2xl border border-hairline",
+              isFullscreen
+                ? "h-full flex-1"
+                : "aspect-video rounded-2xl border border-hairline",
             )}
             onDoubleClick={() => {
               if (lastPointerType.current === "mouse") toggleFullscreen();
@@ -1318,13 +1447,18 @@ export function MediaPlayer() {
                       <div
                         className={cn(
                           "h-full transition-all",
-                          remux.phase === "error" ? "bg-destructive" : "bg-primary",
+                          remux.phase === "error"
+                            ? "bg-destructive"
+                            : "bg-primary",
                         )}
-                        style={{ width: `${Math.max(2, Math.round(remux.ratio * 100))}%` }}
+                        style={{
+                          width: `${Math.max(2, Math.round(remux.ratio * 100))}%`,
+                        }}
                       />
                     </div>
                     <p className="readout mt-1.5 text-[10px] text-muted-foreground/80">
-                      Video bytes are copied untouched; only unsupported audio is re-encoded.
+                      Video bytes are copied untouched; only unsupported audio
+                      is re-encoded.
                     </p>
                   </OverlayCard>
                 )}
@@ -1372,12 +1506,16 @@ export function MediaPlayer() {
                         <div className="mt-2 h-1 w-full overflow-hidden rounded-sm bg-hairline">
                           <div
                             className="h-full bg-primary transition-all"
-                            style={{ width: `${Math.round(recovery.ratio * 100)}%` }}
+                            style={{
+                              width: `${Math.round(recovery.ratio * 100)}%`,
+                            }}
                           />
                         </div>
                         <p className="readout mt-1.5 flex justify-between text-[10px] text-muted-foreground">
                           <span>elapsed {formatTime(recoveryElapsed)}</span>
-                          <span>{etaLabel ? `${etaLabel} left` : "estimating…"}</span>
+                          <span>
+                            {etaLabel ? `${etaLabel} left` : "estimating…"}
+                          </span>
                         </p>
                       </>
                     )}
@@ -1387,17 +1525,25 @@ export function MediaPlayer() {
                 {/* Touch-first fullscreen toggle, clear of any notch. */}
                 <button
                   type="button"
-                  aria-label={isFullscreen ? "Leave fullscreen" : "Enter fullscreen"}
+                  aria-label={
+                    isFullscreen ? "Leave fullscreen" : "Enter fullscreen"
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleFullscreen();
                   }}
                   className={cn(
                     "offset-safe-top offset-safe-right absolute right-2 top-2 z-30 grid size-11 place-items-center rounded-sm border border-hairline bg-background/70 text-foreground backdrop-blur-sm transition-opacity md:hidden",
-                    isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
+                    isFullscreen &&
+                      !controlsVisible &&
+                      "pointer-events-none opacity-0",
                   )}
                 >
-                  {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
+                  {isFullscreen ? (
+                    <Minimize className="size-5" />
+                  ) : (
+                    <Maximize className="size-5" />
+                  )}
                 </button>
 
                 {/* Live gesture readout: scrub target, volume, caption offset. */}
@@ -1448,7 +1594,10 @@ export function MediaPlayer() {
             ) : (
               <div className="cinema-empty absolute inset-0 flex flex-col items-center justify-center px-6 py-6 text-center">
                 <div className="relative z-10 flex max-w-md flex-col items-center">
-                  <span className="cinema-aperture pointer-events-none mb-4 sm:mb-5" aria-hidden="true">
+                  <span
+                    className="cinema-aperture pointer-events-none mb-4 sm:mb-5"
+                    aria-hidden="true"
+                  >
                     <Play className="ml-0.5 size-6" strokeWidth={1.5} />
                   </span>
                   <h2 className="font-display text-xl font-medium tracking-tight text-foreground sm:text-2xl">
@@ -1479,7 +1628,9 @@ export function MediaPlayer() {
             className={cn(
               isFullscreen &&
                 "pad-safe absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 to-transparent pt-10 transition-opacity duration-300",
-              isFullscreen && !controlsVisible && "pointer-events-none opacity-0",
+              isFullscreen &&
+                !controlsVisible &&
+                "pointer-events-none opacity-0",
             )}
           >
             <ControlBar
@@ -1495,7 +1646,11 @@ export function MediaPlayer() {
               subtitles={subtitles}
               activeSubtitle={activeSubtitle}
               audioTracks={audioOptions}
-              recovery={recovery ? { busy: recovery.busy, ratio: recovery.ratio, etaLabel } : null}
+              recovery={
+                recovery
+                  ? { busy: recovery.busy, ratio: recovery.ratio, etaLabel }
+                  : null
+              }
               canRecoverAudio={Boolean(current) && !recoveredAudio}
               onRecoverAudio={() => void recoverAudio()}
               statsVisible={statsVisible}
@@ -1531,7 +1686,9 @@ export function MediaPlayer() {
                   onChange={(e) => setSubtitleSize(Number(e.target.value))}
                   className="min-w-0 flex-1 accent-primary sm:flex-none"
                 />
-                <span className="readout text-[10px] text-foreground">{subtitleSize}px</span>
+                <span className="readout text-[10px] text-foreground">
+                  {subtitleSize}px
+                </span>
               </label>
               <label className="flex min-w-0 items-center gap-2">
                 <span className="readout text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -1545,7 +1702,9 @@ export function MediaPlayer() {
                   onChange={(e) => setSubtitleOffset(Number(e.target.value))}
                   className="min-w-0 flex-1 accent-primary sm:flex-none"
                 />
-                <span className="readout text-[10px] text-foreground">{subtitleOffset}%</span>
+                <span className="readout text-[10px] text-foreground">
+                  {subtitleOffset}%
+                </span>
               </label>
             </div>
           )}
@@ -1622,12 +1781,20 @@ function SessionReadout({
     <details className="group rounded-2xl border border-hairline bg-panel">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <span>Playback details</span>
-        <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+        <ChevronDown
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+        />
       </summary>
 
       <div className="border-t border-hairline px-5 pb-5 pt-4">
-        <p className="mb-4 truncate text-sm text-foreground" title={name ?? undefined}>
-          {name ?? <span className="text-muted-foreground">No source selected</span>}
+        <p
+          className="mb-4 truncate text-sm text-foreground"
+          title={name ?? undefined}
+        >
+          {name ?? (
+            <span className="text-muted-foreground">No source selected</span>
+          )}
         </p>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4">

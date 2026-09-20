@@ -29,7 +29,10 @@ export function LogPanel() {
   const panelId = "player-activity-log";
 
   const visible = useMemo(
-    () => (filter === "all" ? entries : entries.filter((entry) => entry.level === filter)),
+    () =>
+      filter === "all"
+        ? entries
+        : entries.filter((entry) => entry.level === filter),
     [entries, filter],
   );
   const errorCount = entries.filter((entry) => entry.level === "error").length;
@@ -77,7 +80,10 @@ export function LogPanel() {
           </span>
         )}
         <ChevronDown
-          className={cn("ml-auto size-4 text-muted-foreground transition-transform", open && "rotate-180")}
+          className={cn(
+            "ml-auto size-4 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
           aria-hidden
         />
       </button>
@@ -85,7 +91,11 @@ export function LogPanel() {
       {open && (
         <div id={panelId} className="border-t border-hairline">
           <div className="flex flex-wrap items-center gap-1 border-b border-hairline bg-panel px-3 py-2 sm:px-4">
-            <div role="group" aria-label="Filter activity log" className="flex flex-wrap gap-1">
+            <div
+              role="group"
+              aria-label="Filter activity log"
+              className="flex flex-wrap gap-1"
+            >
               {LEVELS.map((level) => (
                 <button
                   key={level.key}
@@ -104,25 +114,60 @@ export function LogPanel() {
               ))}
             </div>
             <div className="ml-auto flex items-center gap-1">
-              <LogAction label="Copy activity log" onClick={() => void copyAll()}><Copy className="size-4" /></LogAction>
-              <LogAction label="Export activity log" onClick={download}><Download className="size-4" /></LogAction>
-              <LogAction label="Clear activity log" onClick={clearLog}><Eraser className="size-4" /></LogAction>
+              <LogAction
+                label="Copy activity log"
+                onClick={() => void copyAll()}
+              >
+                <Copy className="size-4" />
+              </LogAction>
+              <LogAction label="Export activity log" onClick={download}>
+                <Download className="size-4" />
+              </LogAction>
+              <LogAction label="Clear activity log" onClick={clearLog}>
+                <Eraser className="size-4" />
+              </LogAction>
             </div>
           </div>
 
-          <p className="sr-only" role="status" aria-live="polite">{copyStatus}</p>
+          <p className="sr-only" role="status" aria-live="polite">
+            {copyStatus}
+          </p>
           <div className="max-h-56 overflow-auto px-3 py-3 font-mono text-xs leading-relaxed sm:max-h-64 sm:px-4">
             {visible.length === 0 ? (
-              <p className="font-sans text-sm text-muted-foreground">Nothing logged at this level yet.</p>
+              <p className="font-sans text-sm text-muted-foreground">
+                Nothing logged at this level yet.
+              </p>
             ) : (
               <ol className="flex flex-col-reverse gap-1.5">
                 {visible.map((entry) => (
-                  <li key={entry.id} className="grid grid-cols-[auto_auto_1fr] gap-x-3">
-                    <time className="text-muted-foreground/70">{new Date(entry.at).toISOString().slice(11, 23)}</time>
-                    <span className="w-16 truncate uppercase text-primary">{entry.scope}</span>
-                    <span className={cn("min-w-0 break-words", LEVEL_COLOR[entry.level])}>
-                      {entry.message}{entry.ms !== undefined && <span className="text-muted-foreground"> · {entry.ms}ms</span>}
-                      {entry.detail && <span className="block break-all text-muted-foreground">{entry.detail}</span>}
+                  <li
+                    key={entry.id}
+                    className="grid grid-cols-[auto_auto_1fr] gap-x-3"
+                  >
+                    <time className="text-muted-foreground/70">
+                      {new Date(entry.at).toISOString().slice(11, 23)}
+                    </time>
+                    <span className="w-16 truncate uppercase text-primary">
+                      {entry.scope}
+                    </span>
+                    <span
+                      className={cn(
+                        "min-w-0 break-words",
+                        LEVEL_COLOR[entry.level],
+                      )}
+                    >
+                      {entry.message}
+                      {entry.ms !== undefined && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {entry.ms}ms
+                        </span>
+                      )}
+                      {entry.detail && (
+                        <span className="block break-all text-muted-foreground">
+                          {entry.detail}
+                        </span>
+                      )}
                     </span>
                   </li>
                 ))}
@@ -135,7 +180,15 @@ export function LogPanel() {
   );
 }
 
-function LogAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function LogAction({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"

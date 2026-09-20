@@ -64,7 +64,11 @@ function Index() {
           </div>
         </header>
 
-        <main id="workspace" tabIndex={-1} className="min-w-0 flex-1 py-7 outline-none sm:py-10">
+        <main
+          id="workspace"
+          tabIndex={-1}
+          className="min-w-0 flex-1 py-7 outline-none sm:py-10"
+        >
           <ClientOnly fallback={<PlayerSkeleton />}>
             <MediaPlayer />
           </ClientOnly>
@@ -94,7 +98,11 @@ function Index() {
 
 function PlayerSkeleton() {
   return (
-    <div role="status" aria-label="Loading your player" className="flex flex-col gap-6">
+    <div
+      role="status"
+      aria-label="Loading your player"
+      className="flex flex-col gap-6"
+    >
       <span className="sr-only">Loading your player…</span>
       <div className="h-14 w-64 rounded-xl bg-panel" aria-hidden="true" />
       <div

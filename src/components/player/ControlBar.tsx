@@ -1,4 +1,9 @@
-import { useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  type ComponentPropsWithRef,
+  type ReactNode,
+} from "react";
 import {
   AudioLines,
   Captions,
@@ -86,7 +91,8 @@ export function ControlBar(props: ControlBarProps) {
   const [hoverX, setHoverX] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const subInput = useRef<HTMLInputElement>(null);
-  const duration = Number.isFinite(props.duration) && props.duration > 0 ? props.duration : 0;
+  const duration =
+    Number.isFinite(props.duration) && props.duration > 0 ? props.duration : 0;
   const currentTime = Math.min(
     duration,
     Math.max(0, Number.isFinite(props.currentTime) ? props.currentTime : 0),
@@ -117,8 +123,12 @@ export function ControlBar(props: ControlBarProps) {
       >
         <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-inset">
           {props.buffered.map(([rawStart, rawEnd], index) => {
-            const start = duration ? Math.min(duration, Math.max(0, rawStart)) : 0;
-            const end = duration ? Math.min(duration, Math.max(start, rawEnd)) : 0;
+            const start = duration
+              ? Math.min(duration, Math.max(0, rawStart))
+              : 0;
+            const end = duration
+              ? Math.min(duration, Math.max(start, rawEnd))
+              : 0;
             return (
               <span
                 key={`${rawStart}-${rawEnd}-${index}`}
@@ -180,11 +190,19 @@ export function ControlBar(props: ControlBarProps) {
           className="whitespace-nowrap font-mono text-xs text-foreground"
           aria-label={`${formatTime(currentTime)} elapsed, ${formatTime(duration)} total`}
         >
-          <span className="text-primary">{formatTime(currentTime, duration >= 3600)}</span>
-          <span className="text-muted-foreground"> / {formatTime(duration, duration >= 3600)}</span>
+          <span className="text-primary">
+            {formatTime(currentTime, duration >= 3600)}
+          </span>
+          <span className="text-muted-foreground">
+            {" "}
+            / {formatTime(duration, duration >= 3600)}
+          </span>
         </span>
         <div className="ml-auto flex min-w-[9rem] flex-1 items-center justify-end gap-2 sm:max-w-52">
-          <IconButton label={props.muted ? "Unmute" : "Mute"} onClick={props.onToggleMute}>
+          <IconButton
+            label={props.muted ? "Unmute" : "Mute"}
+            onClick={props.onToggleMute}
+          >
             {props.muted || props.volume === 0 ? (
               <VolumeX className="size-4" aria-hidden />
             ) : (
@@ -197,7 +215,9 @@ export function ControlBar(props: ControlBarProps) {
             max={100}
             step={1}
             value={volume}
-            onChange={(event) => props.onVolume(Number(event.currentTarget.value) / 100)}
+            onChange={(event) =>
+              props.onVolume(Number(event.currentTarget.value) / 100)
+            }
             aria-label="Volume"
             aria-valuetext={`${volume}%`}
             className="cinema-volume-input min-h-11 w-24 shrink-0 cursor-pointer appearance-none rounded-xl bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-32"
@@ -208,9 +228,14 @@ export function ControlBar(props: ControlBarProps) {
       <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-hairline pt-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <StripButton label={`Captions ${props.activeSubtitle >= 0 ? "on" : "off"}`}>
+            <StripButton
+              label={`Captions ${props.activeSubtitle >= 0 ? "on" : "off"}`}
+            >
               <Captions
-                className={cn("size-4", props.activeSubtitle >= 0 && "text-primary")}
+                className={cn(
+                  "size-4",
+                  props.activeSubtitle >= 0 && "text-primary",
+                )}
                 aria-hidden
               />
             </StripButton>
@@ -249,7 +274,8 @@ export function ControlBar(props: ControlBarProps) {
             <DropdownMenuLabel>Audio tracks</DropdownMenuLabel>
             {props.audioTracks.length === 0 ? (
               <p className="max-w-56 px-2 py-2 text-xs text-muted-foreground">
-                This browser is not exposing separate audio tracks for this file.
+                This browser is not exposing separate audio tracks for this
+                file.
               </p>
             ) : (
               props.audioTracks.map((track) => (
@@ -264,7 +290,9 @@ export function ControlBar(props: ControlBarProps) {
                       {track.language && ` (${track.language})`}
                     </span>
                     {track.detail && (
-                      <span className="text-xs text-muted-foreground">{track.detail}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {track.detail}
+                      </span>
                     )}
                   </span>
                 </DropdownMenuCheckboxItem>
@@ -333,13 +361,28 @@ export function ControlBar(props: ControlBarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <StripButton label={`Rotate ${props.rotation}°`} onClick={props.onRotate} compact>
-          <RotateCw className={cn("size-4", props.rotation !== 0 && "text-primary")} aria-hidden />
+        <StripButton
+          label={`Rotate ${props.rotation}°`}
+          onClick={props.onRotate}
+          compact
+        >
+          <RotateCw
+            className={cn("size-4", props.rotation !== 0 && "text-primary")}
+            aria-hidden
+          />
         </StripButton>
-        <StripButton label="Picture in picture" onClick={props.onPictureInPicture} compact>
+        <StripButton
+          label="Picture in picture"
+          onClick={props.onPictureInPicture}
+          compact
+        >
           <PictureInPicture2 className="size-4" aria-hidden />
         </StripButton>
-        <StripButton label="Keyboard shortcuts" onClick={props.onShortcuts} compact>
+        <StripButton
+          label="Keyboard shortcuts"
+          onClick={props.onShortcuts}
+          compact
+        >
           <Keyboard className="size-4" aria-hidden />
         </StripButton>
         <StripButton label="Fullscreen" onClick={props.onFullscreen} compact>

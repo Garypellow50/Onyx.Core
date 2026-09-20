@@ -33,7 +33,10 @@ export function SourceIntake({
       aria-labelledby="add-media-heading"
       className="min-w-0 rounded-2xl border border-hairline bg-panel p-4 shadow-sm sm:p-5"
     >
-      <h2 id="add-media-heading" className="mb-4 text-sm font-medium text-foreground">
+      <h2
+        id="add-media-heading"
+        className="mb-4 text-sm font-medium text-foreground"
+      >
         Add media
       </h2>
 
@@ -66,7 +69,9 @@ export function SourceIntake({
               className="size-6 text-muted-foreground transition-colors group-hover:text-primary"
               aria-hidden
             />
-            <span className="text-sm font-medium">Drop files here, or choose files</span>
+            <span className="text-sm font-medium">
+              Drop files here, or choose files
+            </span>
             <span className="text-sm text-muted-foreground">
               Local files stay on this device.
             </span>
@@ -120,13 +125,15 @@ export function SourceIntake({
               disabled={busy || url.trim() === ""}
               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
               {busy ? "Opening…" : "Add"}
             </button>
           </div>
           <p id="intake-url-help" className="text-sm text-muted-foreground">
-            Works with a direct file link or a shared folder link from Drive, OneDrive, or
-            Dropbox. The link must be publicly viewable.
+            Works with a direct file link or a shared folder link from Drive,
+            OneDrive, or Dropbox. The link must be publicly viewable.
           </p>
         </form>
 
