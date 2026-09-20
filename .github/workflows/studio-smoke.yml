@@ -1,0 +1,76 @@
+name: Studio browser smoke
+
+on:
+  push:
+    branches: [design/onyx-studio-refresh, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  studio-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare artifact directory
+        run: mkdir -p studio-smoke-artifacts
+      # The inherited lock omits lru-cache. Install only in the runner checkout.
+      - name: Install application dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install runner-only browser tooling
+        run: npm install --no-save --package-lock=false playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Validate studio in headless Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 --port 4173 > studio-smoke-artifacts/dev-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=false
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent --max-time 2 http://127.0.0.1:4173/ > /dev/null; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat studio-smoke-artifacts/dev-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            cat studio-smoke-artifacts/dev-server.log
+            echo '::error::Studio dev server did not become ready'
+            exit 1
+          fi
+          node .github/scripts/studio-smoke.mjs
+      - name: Upload runtime evidence
+        id: evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: studio-smoke-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Link runtime evidence
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
+        run: |
+          echo "Runtime evidence: $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Screenshots are captured evidence, not a visual review.' >> "$GITHUB_STEP_SUMMARY"

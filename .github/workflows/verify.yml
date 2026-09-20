@@ -1,0 +1,83 @@
+name: Verify application
+
+on:
+  push:
+    branches: [main, design/onyx-studio-refresh]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # The existing npm lock omits lru-cache required by a transitive dependency.
+      # Use the documented install path until the repository lock is regenerated.
+      # This updates only the runner checkout; it does not commit lock changes.
+      - name: Install dependencies (documented install path)
+        run: npm install --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+  studio-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Lint redesigned interface
+        run: >-
+          npx eslint
+          src/routes/index.tsx
+          src/routes/__root.tsx
+          src/components/player/MediaPlayer.tsx
+          src/components/player/ControlBar.tsx
+          src/components/player/SourceIntake.tsx
+          src/components/player/Playlist.tsx
+          src/components/player/LogPanel.tsx
+          src/components/player/ViewToggle.tsx
+      - name: Check theme formatting
+        run: npx prettier --check src/styles.css
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies (documented install path)
+        run: npm install --no-audit --no-fund
+      - name: TypeScript
+        id: types
+        continue-on-error: true
+        run: npx tsc --noEmit
+      - name: ESLint
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Report static analysis result
+        if: always()
+        env:
+          TYPES: ${{ steps.types.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+        run: |
+          echo "TypeScript: $TYPES; ESLint: $LINT" >> "$GITHUB_STEP_SUMMARY"
+          test "$TYPES" = success && test "$LINT" = success

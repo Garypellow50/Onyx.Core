@@ -10,7 +10,7 @@ const MODES: { id: ViewMode; label: string; Icon: typeof List }[] = [
   { id: "xl", label: "Extra large tiles", Icon: Rows3 },
 ];
 
-/** Compact segmented control for switching between list and tile layouts. */
+/** Accessible segmented control for switching between list and tile layouts. */
 export function ViewToggle({
   value,
   onChange,
@@ -24,7 +24,10 @@ export function ViewToggle({
     <div
       role="group"
       aria-label="View layout"
-      className={cn("flex shrink-0 items-center rounded-sm border border-hairline", className)}
+      className={cn(
+        "flex shrink-0 items-center gap-1 rounded-2xl border border-hairline bg-panel p-1",
+        className,
+      )}
     >
       {MODES.map(({ id, label, Icon }) => (
         <button
@@ -32,14 +35,14 @@ export function ViewToggle({
           type="button"
           onClick={() => onChange(id)}
           aria-label={label}
-          title={label}
           aria-pressed={value === id}
+          title={label}
           className={cn(
-            "p-1.5 text-muted-foreground transition-colors first:rounded-l-sm last:rounded-r-sm hover:text-foreground",
-            value === id && "bg-inset text-primary",
+            "flex size-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-inset hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            value === id && "bg-inset text-primary shadow-sm",
           )}
         >
-          <Icon className="size-3.5" aria-hidden />
+          <Icon className="size-4" aria-hidden />
         </button>
       ))}
     </div>

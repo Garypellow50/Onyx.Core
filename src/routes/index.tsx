@@ -1,12 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { ShieldCheck } from "lucide-react";
 
-import logo from "@/assets/onyxcore-logo.png";
 import { MediaPlayer } from "@/components/player/MediaPlayer";
 
-const TITLE = "OnyxCore — local-first large media player";
+const TITLE = "Onyx.Core | Your personal screening room";
 const DESCRIPTION =
-  "Play huge video and audio files in the browser at original quality: captions, audio tracks, 10-second skips, rotation, keyboard shortcuts and a verbose step-by-step log.";
+  "A quiet, local-first media player. Open your videos, audio, folders, and public links with captions and browser-side audio recovery.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,39 +21,97 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-4 p-3 sm:gap-6 sm:p-6">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline pb-3 sm:gap-4 sm:pb-4">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-4">
-          <img
-            src={logo}
-            alt="OnyxCore logo"
-            width={1024}
-            height={1024}
-            className="size-7 shrink-0 sm:size-8"
-          />
-          <h1 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            ONYX<span className="text-primary">.</span>CORE
-          </h1>
-          <span className="hidden h-4 w-px bg-hairline sm:block" aria-hidden />
-          <p className="readout hidden truncate text-xs uppercase tracking-[0.2em] text-muted-foreground sm:block">
-            Local media node 01
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden />
-          <span className="readout text-[9px] uppercase tracking-widest text-foreground sm:text-[10px]">
-            system_ready
-          </span>
-        </div>
-      </header>
-
-      <ClientOnly
-        fallback={
-          <div className="aspect-video w-full animate-pulse rounded-sm border border-hairline bg-panel" />
-        }
+    <div className="studio-shell">
+      <a
+        href="#workspace"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-primary focus:px-5 focus:py-3 focus:text-primary-foreground"
       >
-        <MediaPlayer />
-      </ClientOnly>
-    </main>
+        Skip to player
+      </a>
+
+      <div className="mx-auto flex min-h-screen w-full max-w-[1560px] flex-col">
+        <header className="flex min-h-24 items-center justify-between gap-4 border-b border-hairline/70 py-5 sm:min-h-28 sm:py-6">
+          <a
+            href="/"
+            aria-label="Onyx.Core home"
+            className="flex min-w-0 items-center gap-3 rounded-xl sm:gap-4"
+          >
+            <span className="studio-mark" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2.5 21 7.75v8.5L12 21.5 3 16.25v-8.5L12 2.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
+                <path d="m10 8 6 4-6 4V8Z" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <span className="font-display text-lg font-medium tracking-[-0.04em] text-foreground sm:text-xl">
+                Onyx<span className="text-primary">.</span>Core
+              </span>
+              <span className="hidden text-xs text-muted-foreground min-[390px]:inline">
+                A personal screening room
+              </span>
+            </span>
+          </a>
+
+          <div className="flex shrink-0 items-center gap-2 rounded-full border border-hairline bg-panel/60 px-3 py-2 text-xs text-muted-foreground sm:px-4">
+            <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
+            <span>
+              Local-first<span className="hidden sm:inline"> by design</span>
+            </span>
+          </div>
+        </header>
+
+        <main
+          id="workspace"
+          tabIndex={-1}
+          className="min-w-0 flex-1 py-7 outline-none sm:py-10"
+        >
+          <ClientOnly fallback={<PlayerSkeleton />}>
+            <MediaPlayer />
+          </ClientOnly>
+        </main>
+
+        <footer className="flex flex-col gap-3 border-t border-hairline/70 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:py-6">
+          <p>Your files stay yours. Local playback needs no upload.</p>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>
+              <kbd className="rounded border border-hairline bg-panel px-1.5 py-0.5 font-mono text-[11px]">
+                Space
+              </kbd>{" "}
+              to pause
+            </span>
+            <span>
+              <kbd className="rounded border border-hairline bg-panel px-1.5 py-0.5 font-mono text-[11px]">
+                ?
+              </kbd>{" "}
+              for shortcuts
+            </span>
+          </p>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function PlayerSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading your player"
+      className="flex flex-col gap-6"
+    >
+      <span className="sr-only">Loading your player…</span>
+      <div className="h-14 w-64 rounded-xl bg-panel" aria-hidden="true" />
+      <div
+        className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]"
+        aria-hidden="true"
+      >
+        <div className="aspect-video min-h-[340px] rounded-2xl border border-hairline bg-panel" />
+        <div className="h-96 rounded-2xl border border-hairline bg-panel" />
+      </div>
+    </div>
   );
 }
