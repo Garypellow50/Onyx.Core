@@ -24,8 +24,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install locked dependencies
-        run: npm ci
+      # The existing npm lock omits lru-cache required by a transitive dependency.
+      # Use the documented install path until the repository lock is regenerated.
+      # This updates only the runner checkout; it does not commit lock changes.
+      - name: Install dependencies (documented install path)
+        run: npm install --no-audit --no-fund
       - name: Production build
         run: npm run build
   static-analysis:
@@ -37,8 +40,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install locked dependencies
-        run: npm ci
+      - name: Install dependencies (documented install path)
+        run: npm install --no-audit --no-fund
       - name: TypeScript
         id: types
         continue-on-error: true
