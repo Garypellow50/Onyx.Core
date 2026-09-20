@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   AudioLines,
   Captions,
@@ -19,7 +20,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
-  DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -89,120 +89,142 @@ export function ControlBar(props: ControlBarProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const subInput = useRef<HTMLInputElement>(null);
 
-  const progress = props.duration > 0 ? (props.currentTime / props.duration) * 100 : 0;
-  const activeAudio = props.audioTracks.find((t) => t.enabled);
+  const hasDuration = Number.isFinite(props.duration) && props.duration > 0;
+  const duration = hasDuration ? props.duration : 0;
+  const currentTime = Math.min(duration, Math.max(0, props.currentTime || 0));
+  const progress = hasDuration ? (currentTime / duration) * 100 : 0;
+  const activeAudio = props.audioTracks.find((track) => track.enabled);
   const recovery = props.recovery;
 
   function positionFromEvent(clientX: number): number {
     const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return 0;
+    if (!rect || rect.width === 0 || !hasDuration) return 0;
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    return ratio * props.duration;
+    return ratio * duration;
   }
 
   return (
-    <div className="panel-machined flex min-w-0 flex-col gap-3 p-2 sm:p-3">
+    <div
+      className="cinema-controls flex min-w-0 flex-col gap-3 rounded-2xl border border-border/60 bg-card/95 p-3 text-card-foreground shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-md sm:gap-4 sm:p-4"
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
       <div
         ref={trackRef}
-        role="slider"
-        tabIndex={0}
-        aria-label="Seek"
-        aria-valuemin={0}
-        aria-valuemax={Math.round(props.duration)}
-        aria-valuenow={Math.round(props.currentTime)}
-        className="group relative h-4 cursor-pointer"
-        onMouseMove={(e) => {
-          setHoverTime(positionFromEvent(e.clientX));
+        className={cn("group relative h-7", hasDuration ? "cursor-pointer" : "cursor-not-allowed opacity-50")}
+        onPointerMove={(event) => {
+          if (event.pointerType !== "mouse" || !hasDuration) return;
+          setHoverTime(positionFromEvent(event.clientX));
           const rect = trackRef.current?.getBoundingClientRect();
-          setHoverX(rect ? e.clientX - rect.left : 0);
+          setHoverX(rect ? Math.min(rect.width, Math.max(0, event.clientX - rect.left)) : 0);
         }}
-        onMouseLeave={() => setHoverTime(null)}
-        onClick={(e) => props.onSeek(positionFromEvent(e.clientX))}
+        onPointerLeave={() => setHoverTime(null)}
       >
-        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden bg-inset">
-          {props.buffered.map(([start, end], i) => (
-            <span
-              key={`${start}-${end}-${i}`}
-              className="absolute inset-y-0 bg-hairline"
-              style={{
-                left: `${props.duration ? (start / props.duration) * 100 : 0}%`,
-                width: `${props.duration ? ((end - start) / props.duration) * 100 : 0}%`,
-              }}
-            />
-          ))}
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-muted">
+          {props.buffered.map(([start, end], index) => {
+            const safeStart = Math.min(duration, Math.max(0, start));
+            const safeEnd = Math.min(duration, Math.max(safeStart, end));
+            return (
+              <span
+                key={`${start}-${end}-${index}`}
+                className="absolute inset-y-0 rounded-full bg-muted-foreground/35"
+                style={{
+                  left: `${hasDuration ? (safeStart / duration) * 100 : 0}%`,
+                  width: `${hasDuration ? ((safeEnd - safeStart) / duration) * 100 : 0}%`,
+                }}
+              />
+            );
+          })}
           <span
-            className="absolute inset-y-0 left-0 bg-primary"
+            className="absolute inset-y-0 left-0 rounded-full bg-primary"
             style={{ width: `${progress}%` }}
           />
         </div>
         <span
-          className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 border-2 border-primary bg-foreground shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_50%,transparent)] transition-opacity"
+          className="pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-primary-foreground shadow-sm transition-transform group-focus-within:scale-110 group-hover:scale-110"
           style={{ left: `${progress}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={duration}
+          step="any"
+          value={currentTime}
+          disabled={!hasDuration}
+          aria-label="Seek through video"
+          aria-valuetext={`${formatTime(currentTime, duration >= 3600)} of ${formatTime(duration, duration >= 3600)}`}
+          onChange={(event) => props.onSeek(Number(event.currentTarget.value))}
+          className="absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0 disabled:cursor-not-allowed [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:w-7"
         />
         {hoverTime !== null && (
           <span
-            className="readout pointer-events-none absolute -top-7 -translate-x-1/2 rounded-sm border border-hairline bg-background px-1.5 py-0.5 text-[10px] text-foreground"
+            className="pointer-events-none absolute -top-8 z-20 -translate-x-1/2 rounded-lg border border-border/70 bg-popover px-2 py-1 text-xs tabular-nums text-popover-foreground shadow-md"
             style={{ left: hoverX }}
           >
-            {formatTime(hoverTime)}
+            {formatTime(hoverTime, duration >= 3600)}
           </span>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-0.5 sm:gap-1">
-        <IconButton label={props.playing ? "Pause" : "Play"} onClick={props.onTogglePlay}>
-          {props.playing ? <Pause className="size-5" /> : <Play className="size-5" />}
-        </IconButton>
-        <IconButton label="Back 10 seconds" onClick={() => props.onSkip(-10)}>
-          <SkipBack className="size-4" />
-        </IconButton>
-        <IconButton label="Forward 10 seconds" onClick={() => props.onSkip(10)}>
-          <SkipForward className="size-4" />
-        </IconButton>
-
-        <span className="readout ml-1 flex items-center gap-1 text-[10px] sm:gap-1.5 sm:text-[11px]">
-          <span className="text-primary">
-            {formatTime(props.currentTime, props.duration >= 3600)}
-          </span>
-          <span className="text-hairline">/</span>
-          <span className="text-muted-foreground">
-            {formatTime(props.duration, props.duration >= 3600)}
-          </span>
-        </span>
-
-        <span className="mx-2 hidden h-3 w-px bg-hairline sm:block" aria-hidden />
-
-        <div className="flex min-w-0 items-center gap-1.5">
-          <IconButton label={props.muted ? "Unmute" : "Mute"} onClick={props.onToggleMute}>
-            {props.muted || props.volume === 0 ? (
-              <VolumeX className="size-4" />
-            ) : (
-              <Volume2 className="size-4" />
-            )}
+      <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center">
+        <div className="flex min-w-0 items-center gap-1">
+          <IconButton
+            label={props.playing ? "Pause" : "Play"}
+            onClick={props.onTogglePlay}
+            emphasis
+          >
+            {props.playing ? <Pause className="size-5" /> : <Play className="size-5 fill-current" />}
           </IconButton>
-          <Slider
-            className="w-14 sm:w-20"
-            value={[props.muted ? 0 : Math.round(props.volume * 100)]}
-            max={100}
-            step={1}
-            onValueChange={(v) => props.onVolume((v[0] ?? 0) / 100)}
-            aria-label="Volume"
-          />
+          <IconButton label="Back 10 seconds" onClick={() => props.onSkip(-10)}>
+            <SkipBack className="size-[18px]" />
+          </IconButton>
+          <IconButton label="Forward 10 seconds" onClick={() => props.onSkip(10)}>
+            <SkipForward className="size-[18px]" />
+          </IconButton>
+
+          <span className="ml-1 whitespace-nowrap text-sm tabular-nums text-muted-foreground sm:ml-2">
+            <span className="font-medium text-foreground">
+              {formatTime(currentTime, duration >= 3600)}
+            </span>
+            <span className="mx-1.5 text-border">/</span>
+            {formatTime(duration, duration >= 3600)}
+          </span>
+
+          <span className="mx-2 hidden h-6 w-px bg-border/70 sm:block" aria-hidden />
+
+          <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+            <IconButton label={props.muted ? "Unmute" : "Mute"} onClick={props.onToggleMute}>
+              {props.muted || props.volume === 0 ? (
+                <VolumeX className="size-[18px]" />
+              ) : (
+                <Volume2 className="size-[18px]" />
+              )}
+            </IconButton>
+            <Slider
+              className="w-16 sm:w-24"
+              value={[props.muted ? 0 : Math.round(props.volume * 100)]}
+              max={100}
+              step={1}
+              onValueChange={(value) => props.onVolume((value[0] ?? 0) / 100)}
+              aria-label="Volume"
+            />
+          </div>
         </div>
 
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-0.5 sm:ml-auto sm:w-auto sm:flex-nowrap sm:gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-1 lg:ml-auto lg:flex-nowrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="readout flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-                aria-label="Captions and subtitles"
+              <MenuButton
+                label="Captions and subtitles"
+                active={props.activeSubtitle >= 0}
+                icon={<Captions className="size-[18px]" />}
               >
-                <Captions className={cn("size-4", props.activeSubtitle >= 0 && "text-primary")} />
-                CC [{props.activeSubtitle >= 0 ? "ON" : "OFF"}]
-              </button>
+                <span className="hidden xl:inline">
+                  {props.activeSubtitle >= 0 ? "Captions on" : "Captions off"}
+                </span>
+              </MenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <CinemaMenuContent align="end">
               <DropdownMenuLabel>Subtitles</DropdownMenuLabel>
               <DropdownMenuCheckboxItem
                 checked={props.activeSubtitle === -1}
@@ -210,61 +232,52 @@ export function ControlBar(props: ControlBarProps) {
               >
                 Off
               </DropdownMenuCheckboxItem>
-              {props.subtitles.map((t, i) => (
+              {props.subtitles.map((track, index) => (
                 <DropdownMenuCheckboxItem
-                  key={t.id}
-                  checked={props.activeSubtitle === i}
-                  onCheckedChange={() => props.onSubtitle(i)}
+                  key={track.id}
+                  checked={props.activeSubtitle === index}
+                  onCheckedChange={() => props.onSubtitle(index)}
                 >
-                  {t.label} · {t.cues} cues
+                  {track.label} · {track.cues} cues
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
-              <button
-                type="button"
-                onClick={() => subInput.current?.click()}
-                className="w-full px-2 py-1.5 text-left text-sm hover:bg-muted"
-              >
-                Load .srt / .vtt / .ass…
-              </button>
-            </DropdownMenuContent>
+              <MenuAction onClick={() => subInput.current?.click()}>
+                Load .srt, .vtt, or .ass…
+              </MenuAction>
+            </CinemaMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="readout flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-                aria-label="Audio track"
-              >
-                <AudioLines className="size-4" />
-                {recovery?.busy
-                  ? `AUDIO ${Math.round(recovery.ratio * 100)}%${recovery.etaLabel ? ` · ${recovery.etaLabel}` : ""}`
-                  : (activeAudio?.label ?? "Audio")}
-              </button>
+              <MenuButton label="Audio track" icon={<AudioLines className="size-[18px]" />}>
+                <span className="hidden max-w-40 truncate xl:inline">
+                  {recovery?.busy
+                    ? `Recovering ${Math.round(recovery.ratio * 100)}%${recovery.etaLabel ? ` · ${recovery.etaLabel}` : ""}`
+                    : (activeAudio?.label ?? "Audio")}
+                </span>
+              </MenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <CinemaMenuContent align="end">
               <DropdownMenuLabel>Audio tracks</DropdownMenuLabel>
               {props.audioTracks.length === 0 ? (
-                <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
-                  This browser is not exposing separate audio tracks for this file. Chromium exposes
-                  them most often; Safari and Firefox usually do not.
+                <p className="max-w-64 px-2 py-2 text-sm leading-relaxed text-muted-foreground">
+                  This browser does not expose separate audio tracks for this file. Chromium exposes
+                  them most often. Safari and Firefox usually do not.
                 </p>
               ) : (
-                props.audioTracks.map((t) => (
+                props.audioTracks.map((track) => (
                   <DropdownMenuCheckboxItem
-                    key={t.id}
-                    checked={t.enabled}
-                    onCheckedChange={() => props.onAudioTrack(t.id)}
+                    key={track.id}
+                    checked={track.enabled}
+                    onCheckedChange={() => props.onAudioTrack(track.id)}
                   >
-                    <span className="flex flex-col">
+                    <span className="flex flex-col gap-0.5">
                       <span>
-                        {t.label} {t.language && `(${t.language})`}
+                        {track.label} {track.language && `(${track.language})`}
                       </span>
-                      {t.detail && (
-                        <span className="readout text-[10px] text-muted-foreground">
-                          {t.detail}
-                        </span>
+                      {track.detail && (
+                        <span className="text-xs text-muted-foreground">{track.detail}</span>
                       )}
                     </span>
                   </DropdownMenuCheckboxItem>
@@ -273,65 +286,49 @@ export function ControlBar(props: ControlBarProps) {
               {props.canRecoverAudio && props.onRecoverAudio && (
                 <>
                   <DropdownMenuSeparator />
-                  <button
-                    type="button"
-                    disabled={recovery?.busy}
-                    onClick={props.onRecoverAudio}
-                    className="w-full px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
-                  >
+                  <MenuAction disabled={recovery?.busy} onClick={props.onRecoverAudio}>
                     {recovery?.busy
-                      ? `Recovering audio — ${Math.round(recovery.ratio * 100)}%`
-                      : "Recover audio track (transcode pass)"}
-                  </button>
+                      ? `Recovering audio · ${Math.round(recovery.ratio * 100)}%`
+                      : "Recover audio track"}
+                  </MenuAction>
                 </>
               )}
-            </DropdownMenuContent>
+            </CinemaMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="readout flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-                aria-label="Playback speed"
-              >
-                <Gauge className="size-4" />
-                {props.rate}x
-              </button>
+              <MenuButton label="Playback speed" icon={<Gauge className="size-[18px]" />}>
+                {props.rate}×
+              </MenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Speed</DropdownMenuLabel>
-              {RATES.map((r) => (
+            <CinemaMenuContent align="end">
+              <DropdownMenuLabel>Playback speed</DropdownMenuLabel>
+              {RATES.map((rate) => (
                 <DropdownMenuCheckboxItem
-                  key={r}
-                  checked={props.rate === r}
-                  onCheckedChange={() => props.onRate(r)}
+                  key={rate}
+                  checked={props.rate === rate}
+                  onCheckedChange={() => props.onRate(rate)}
                 >
-                  {r}x
+                  {rate}×
                 </DropdownMenuCheckboxItem>
               ))}
-            </DropdownMenuContent>
+            </CinemaMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="readout flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-                aria-label="Frame fit"
-              >
-                <Proportions className="size-4" />
-              </button>
+              <MenuButton label="Frame fit" icon={<Proportions className="size-[18px]" />} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <CinemaMenuContent align="end">
               <DropdownMenuLabel>Frame</DropdownMenuLabel>
-              {FIT_MODES.map((m) => (
+              {FIT_MODES.map((mode) => (
                 <DropdownMenuCheckboxItem
-                  key={m.key}
-                  checked={props.fit === m.key}
-                  onCheckedChange={() => props.onFit(m.key)}
+                  key={mode.key}
+                  checked={props.fit === mode.key}
+                  onCheckedChange={() => props.onFit(mode.key)}
                 >
-                  {m.label}
+                  {mode.label}
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
@@ -341,20 +338,20 @@ export function ControlBar(props: ControlBarProps) {
               >
                 Stats overlay
               </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
+            </CinemaMenuContent>
           </DropdownMenu>
 
           <IconButton label={`Rotate (now ${props.rotation}°)`} onClick={props.onRotate}>
-            <RotateCw className={cn("size-4", props.rotation !== 0 && "text-primary")} />
+            <RotateCw className={cn("size-[18px]", props.rotation !== 0 && "text-primary")} />
           </IconButton>
           <IconButton label="Picture in picture" onClick={props.onPictureInPicture}>
-            <PictureInPicture2 className="size-4" />
+            <PictureInPicture2 className="size-[18px]" />
           </IconButton>
           <IconButton label="Keyboard shortcuts" onClick={props.onShortcuts}>
-            <Keyboard className="size-4" />
+            <Keyboard className="size-[18px]" />
           </IconButton>
           <IconButton label="Fullscreen" onClick={props.onFullscreen}>
-            <Maximize className="size-4" />
+            <Maximize className="size-[18px]" />
           </IconButton>
         </div>
       </div>
@@ -364,13 +361,83 @@ export function ControlBar(props: ControlBarProps) {
         type="file"
         hidden
         accept=".srt,.vtt,.ass,.ssa"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
+        onChange={(event) => {
+          const file = event.target.files?.[0];
           if (file) props.onAddSubtitleFile(file);
-          e.target.value = "";
+          event.target.value = "";
         }}
       />
     </div>
+  );
+}
+
+function CinemaMenuContent({
+  className,
+  sideOffset = 8,
+  ...props
+}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>) {
+  const fullscreenContainer =
+    typeof document === "undefined" ? undefined : (document.fullscreenElement ?? undefined);
+
+  return (
+    <DropdownMenuPrimitive.Portal container={fullscreenContainer}>
+      <DropdownMenuPrimitive.Content
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-44 overflow-y-auto overflow-x-hidden rounded-xl border border-border/70 bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-md",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          className,
+        )}
+        onKeyDown={(event) => event.stopPropagation()}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+}
+
+function MenuButton({
+  label,
+  icon,
+  active = false,
+  children,
+}: {
+  label: string;
+  icon: ReactNode;
+  active?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active && "bg-primary/10 text-primary",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function MenuAction({
+  children,
+  className,
+  ...props
+}: ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex min-h-10 w-full items-center rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -378,10 +445,12 @@ function IconButton({
   label,
   onClick,
   children,
+  emphasis = false,
 }: {
   label: string;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
+  emphasis?: boolean;
 }) {
   return (
     <button
@@ -389,7 +458,10 @@ function IconButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="rounded-sm p-1.5 text-foreground transition-colors hover:text-primary"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        emphasis && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+      )}
     >
       {children}
     </button>
