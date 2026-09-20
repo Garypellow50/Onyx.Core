@@ -114,15 +114,13 @@ try {
     report.viewports.push(evidence);
     page.on("pageerror", (error) => evidence.pageErrors.push(error.message));
     page.on("console", (message) => {
-      if (message.type() === "error") evidence.consoleErrors.push(message.text());
+      if (message.type() === "error")
+        evidence.consoleErrors.push(message.text());
     });
     // Keep validation local. Block optional external fonts and telemetry.
     await context.route("**/*", (route) => {
       const url = new URL(route.request().url());
-      if (
-        url.origin === baseURL ||
-        ["blob:", "data:"].includes(url.protocol)
-      ) {
+      if (url.origin === baseURL || ["blob:", "data:"].includes(url.protocol)) {
         return route.continue();
       }
       evidence.blockedRequests.push(url.href);
@@ -214,31 +212,34 @@ try {
           }
         });
       }
-      await check("Native details keyboard toggle; stats starts off", async () => {
-        const details = page.locator("details").filter({
-          has: page.locator("summary", { hasText: "Playback details" }),
-        });
-        const summary = details.locator("summary");
-        assert.equal(await details.evaluate((el) => el.open), false);
-        await summary.focus();
-        await page.keyboard.press("Enter");
-        await eventually(
-          () => details.evaluate((el) => el.open),
-          "Playback details did not open",
-        );
-        const stats = details.getByRole("button", {
-          name: "Stats overlay Off",
-          exact: true,
-        });
-        await visible(stats);
-        assert.equal(await stats.getAttribute("aria-pressed"), "false");
-        await summary.focus();
-        await page.keyboard.press("Enter");
-        await eventually(
-          async () => !(await details.evaluate((el) => el.open)),
-          "Playback details did not close",
-        );
-      });
+      await check(
+        "Native details keyboard toggle; stats starts off",
+        async () => {
+          const details = page.locator("details").filter({
+            has: page.locator("summary", { hasText: "Playback details" }),
+          });
+          const summary = details.locator("summary");
+          assert.equal(await details.evaluate((el) => el.open), false);
+          await summary.focus();
+          await page.keyboard.press("Enter");
+          await eventually(
+            () => details.evaluate((el) => el.open),
+            "Playback details did not open",
+          );
+          const stats = details.getByRole("button", {
+            name: "Stats overlay Off",
+            exact: true,
+          });
+          await visible(stats);
+          assert.equal(await stats.getAttribute("aria-pressed"), "false");
+          await summary.focus();
+          await page.keyboard.press("Enter");
+          await eventually(
+            async () => !(await details.evaluate((el) => el.open)),
+            "Playback details did not close",
+          );
+        },
+      );
       const filename = `studio-smoke-${label}.wav`;
       const loaded = await check("Local WAV through native chooser", async () => {
         const [chooser] = await Promise.all([
