@@ -241,7 +241,7 @@ try {
         },
       );
       const filename = `studio-smoke-${label}.wav`;
-      const loaded = await check("Local WAV through native chooser", async () => {
+      const loaded = await check("Local WAV chooser", async () => {
         const [chooser] = await Promise.all([
           page.waitForEvent("filechooser"),
           choose.click(),
