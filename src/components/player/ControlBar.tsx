@@ -1,4 +1,5 @@
-import { useRef, type ReactNode } from "react";
+import { forwardRef, useEffect, useId, useRef, useState, type ComponentPropsWithoutRef, type ElementRef, type ReactNode } from "react";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   AudioLines,
   Captions,
@@ -19,7 +20,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
-  DropdownMenuContent,
+  DropdownMenuPortal,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -48,7 +49,42 @@ const FIT_MODES: { key: FitMode; label: string }[] = [
   { key: "zoom", label: "Zoom 125%" },
 ];
 const MENU_TRIGGER = "transport-menu inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const MENU_CONTENT = "max-h-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border-border";
+const MENU_CONTENT = "max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border-border";
+
+// Keep the shared content's ref, props, positioning and appearance, but portal
+// inside the fullscreen element so the browser's top layer does not hide menus.
+const DropdownMenuContent = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.Content>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => {
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const syncFullscreen = () => {
+      const element = document.fullscreenElement;
+      setPortalContainer(element instanceof HTMLElement ? element : null);
+    };
+    syncFullscreen();
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+
+  return (
+    <DropdownMenuPortal {...(portalContainer ? { container: portalContainer } : {})}>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPortal>
+  );
+});
+DropdownMenuContent.displayName = "FullscreenDropdownMenuContent";
 
 export interface ControlBarProps {
   playing: boolean;
@@ -91,7 +127,11 @@ function clampFinite(value: number, max: number): number {
 
 export function ControlBar(props: ControlBarProps) {
   const subInput = useRef<HTMLInputElement>(null);
+  const previewId = useId();
+  const [hoverRatio, setHoverRatio] = useState<number | null>(null);
   const duration = Number.isFinite(props.duration) && props.duration > 0 ? props.duration : 0;
+  const showPreview = hoverRatio !== null && duration > 0;
+  const previewRatio = hoverRatio ?? 0;
   const currentTime = clampFinite(props.currentTime, duration);
   const volume = clampFinite(props.volume, 1);
   const volumePercent = props.muted ? 0 : Math.round(volume * 100);
@@ -109,10 +149,22 @@ export function ControlBar(props: ControlBarProps) {
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
-      <div className="seek-control relative h-10 min-w-0">
+      <div
+        className="seek-control relative h-10 min-w-0"
+        onPointerMove={(event) => {
+          if (event.pointerType === "touch" || duration === 0) {
+            setHoverRatio(null);
+            return;
+          }
+          const rect = event.currentTarget.getBoundingClientRect();
+          setHoverRatio(rect.width > 0 ? clampFinite((event.clientX - rect.left) / rect.width, 1) : null);
+        }}
+        onPointerLeave={() => setHoverRatio(null)}
+        onPointerCancel={() => setHoverRatio(null)}
+      >
         <span
           aria-hidden="true"
-          className="seek-track pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-muted"
+          className="seek-track pointer-events-none absolute inset-x-0 top-1/2 h-1 overflow-hidden rounded-full bg-muted"
         >
           {props.buffered.map(([rawStart, rawEnd], index) => {
             if (!duration || !Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) return null;
@@ -138,12 +190,24 @@ export function ControlBar(props: ControlBarProps) {
           disabled={duration === 0}
           aria-label="Seek"
           aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+          aria-describedby={showPreview ? previewId : undefined}
           onChange={(event) => {
             if (duration > 0) props.onSeek(clampFinite(event.currentTarget.valueAsNumber, duration));
           }}
           onKeyDown={(event) => event.stopPropagation()}
           onKeyUp={(event) => event.stopPropagation()}
         />
+        {showPreview && (
+          <span
+            id={previewId}
+            role="tooltip"
+            className="seek-preview pointer-events-none absolute bottom-full z-10 mb-1 max-w-full whitespace-nowrap rounded-lg border border-border bg-popover px-2 py-1 text-xs tabular-nums text-popover-foreground shadow-sm"
+            style={{ left: `${previewRatio * 100}%`, transform: `translateX(-${previewRatio * 100}%)` }}
+          >
+            <span className="sr-only">Seek preview: </span>
+            {formatTime(previewRatio * duration, duration >= 3600)}
+          </span>
+        )}
       </div>
 
       <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -186,7 +250,7 @@ export function ControlBar(props: ControlBarProps) {
       <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-border pt-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" aria-label="Captions and subtitles" className={cn(MENU_TRIGGER, props.activeSubtitle >= 0 && "text-chart-2")}>
+            <button type="button" aria-label="Captions and subtitles" data-active={props.activeSubtitle >= 0} className={cn(MENU_TRIGGER, props.activeSubtitle >= 0 && "text-chart-2")}>
               <Captions className="size-4 shrink-0" aria-hidden />
               <span>Captions {props.activeSubtitle >= 0 ? "on" : "off"}</span>
             </button>
@@ -213,6 +277,7 @@ export function ControlBar(props: ControlBarProps) {
             <button
               type="button"
               aria-label={`Audio tracks: ${audioLabel}`}
+              data-active={Boolean(recovery?.busy)}
               className={cn(MENU_TRIGGER, "max-w-full sm:max-w-64", recovery?.busy && "text-chart-2")}
             >
               <AudioLines className="size-4 shrink-0" aria-hidden />
@@ -267,7 +332,7 @@ export function ControlBar(props: ControlBarProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" aria-label="Frame fit and playback stats" className={cn(MENU_TRIGGER, (props.fit !== "contain" || props.statsVisible) && "text-chart-2")}>
+            <button type="button" aria-label="Frame fit and playback stats" data-active={props.fit !== "contain" || props.statsVisible} className={cn(MENU_TRIGGER, (props.fit !== "contain" || props.statsVisible) && "text-chart-2")}>
               <Proportions className="size-4 shrink-0" aria-hidden />
               <span>Frame</span>
             </button>

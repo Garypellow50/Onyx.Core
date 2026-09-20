@@ -57,7 +57,7 @@ export function LogPanel() {
   }
 
   return (
-    <section className="diagnostics-panel min-w-0 rounded-2xl border border-border bg-card shadow-sm">
+    <section className="diagnostics min-w-0 rounded-2xl border border-border bg-card shadow-sm">
       <header className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <button
           type="button"
@@ -160,7 +160,7 @@ export function LogPanel() {
                     <span className={cn("min-w-0 break-words", LEVEL_COLOR[e.level])}>
                       {e.message}
                       {e.ms !== undefined && (
-                        <span className="text-muted-foreground"> \u00b7 {e.ms}ms</span>
+                        <span className="text-muted-foreground"> · {e.ms}ms</span>
                       )}
                       {e.detail && (
                         <span className="block break-all text-muted-foreground">{e.detail}</span>
