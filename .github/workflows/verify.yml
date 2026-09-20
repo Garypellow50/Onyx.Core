@@ -1,0 +1,57 @@
+name: Verify application
+
+on:
+  push:
+    branches: [main, design/onyx-studio-refresh]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Production build
+        run: npm run build
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript
+        id: types
+        continue-on-error: true
+        run: npx tsc --noEmit
+      - name: ESLint
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Report static analysis result
+        if: always()
+        env:
+          TYPES: ${{ steps.types.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+        run: |
+          echo "TypeScript: $TYPES; ESLint: $LINT" >> "$GITHUB_STEP_SUMMARY"
+          test "$TYPES" = success && test "$LINT" = success

@@ -4,20 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
+/* Quiet Cinema. Semantic colors stay in OKLCH; media pixels are never tinted. */
 @theme inline {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", "Manrope", ui-sans-serif, sans-serif;
@@ -67,67 +54,66 @@
   --color-inset: var(--inset);
 }
 
-:root {
-  /*
-   * Charcoal & Ember — machined instrument panel.
-   * #1a1a1a base, #2d2d2d panel, #4a4a4a hairline, #e85d3a single ember accent.
-   */
-  --radius: 0.25rem;
-  --background: oklch(0.203 0 0);
-  --foreground: oklch(0.855 0 0);
-  --card: oklch(0.283 0 0);
-  --card-foreground: oklch(0.9 0 0);
-  --popover: oklch(0.253 0 0);
-  --popover-foreground: oklch(0.9 0 0);
-  --primary: oklch(0.643 0.166 38.5);
-  --primary-foreground: oklch(0.99 0.005 38);
-  --secondary: oklch(0.283 0 0);
-  --secondary-foreground: oklch(0.9 0 0);
-  --muted: oklch(0.283 0 0);
-  --muted-foreground: oklch(0.62 0 0);
-  --accent: oklch(0.33 0 0);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.61 0.2 25);
-  --destructive-foreground: oklch(0.97 0.01 25);
-  --border: oklch(0.402 0 0);
-  --input: oklch(0.402 0 0);
-  --ring: oklch(0.643 0.166 38.5);
-  --chart-1: oklch(0.643 0.166 38.5);
-  --chart-2: oklch(0.75 0.12 160);
-  --chart-3: oklch(0.7 0.09 240);
-  --chart-4: oklch(0.82 0.13 85);
-  --chart-5: oklch(0.68 0.14 330);
-  --sidebar: oklch(0.243 0 0);
-  --sidebar-foreground: oklch(0.9 0 0);
-  --sidebar-primary: oklch(0.643 0.166 38.5);
-  --sidebar-primary-foreground: oklch(0.99 0.005 38);
-  --sidebar-accent: oklch(0.3 0 0);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(0.402 0 0);
-  --sidebar-ring: oklch(0.643 0.166 38.5);
-  /* Machined structure tokens. */
-  --hairline: oklch(0.402 0 0);
-  --panel: oklch(0.283 0 0);
-  --inset: oklch(0.163 0 0);
-  /* Burned-in caption rendering (always light-on-dark, independent of theme). */
+:root,
+.dark {
+  color-scheme: dark;
+  --radius: 0.875rem;
+  --background: oklch(0.175 0.007 65);
+  --foreground: oklch(0.94 0.014 80);
+  --card: oklch(0.215 0.008 65);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.255 0.008 65);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.79 0.078 57);
+  --primary-foreground: oklch(0.19 0.018 55);
+  --secondary: oklch(0.275 0.009 65);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.26 0.008 65);
+  --muted-foreground: oklch(0.715 0.016 75);
+  --accent: oklch(0.305 0.015 65);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.76 0.13 27);
+  --destructive-foreground: oklch(0.16 0.01 27);
+  --border: oklch(0.335 0.01 65);
+  --input: oklch(0.405 0.014 65);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.78 0.075 158);
+  --chart-3: oklch(0.77 0.07 240);
+  --chart-4: oklch(0.83 0.09 85);
+  --chart-5: oklch(0.76 0.075 330);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --hairline: var(--border);
+  --panel: var(--card);
+  --inset: oklch(0.155 0.006 65);
   --subtitle-foreground: oklch(1 0 0);
   --subtitle-backdrop: oklch(0 0 0 / 62%);
 }
 
-.dark {
-  /* Single machined charcoal theme — dark is the canonical surface. */
-  color-scheme: dark;
-}
-
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--border);
+  }
+
+  html {
+    min-width: 320px;
+    scroll-padding-top: 1.5rem;
+    scrollbar-color: var(--border) var(--background);
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -135,16 +121,47 @@
   h2,
   h3 {
     font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button,
+  input,
+  a,
+  summary,
+  [tabindex] {
+    -webkit-tap-highlight-color: oklch(0.79 0.078 57 / 12%);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+
+  ::selection {
+    background: oklch(0.79 0.078 57 / 30%);
+    color: var(--foreground);
+  }
+
+  input[type="range"] {
+    accent-color: var(--primary);
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
   }
 }
 
-/* Small-caps instrument label: the recurring panel-heading treatment. */
+/* Legacy utility names keep all existing dialogs and recovery overlays coherent. */
 @utility label-machined {
-  font-family: var(--font-display);
-  font-size: 0.6875rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 @utility readout {
@@ -152,14 +169,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Machined panel: charcoal face with a hairline rule, no soft shadow bloom. */
 @utility panel-machined {
   background-color: var(--panel);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 0 oklch(1 0 0 / 3%) inset, 0 12px 32px oklch(0 0 0 / 8%);
 }
 
-/* Notch/rounded-corner aware insets for anything pinned to a screen edge. */
 @utility pad-safe {
   padding-left: max(0.75rem, env(safe-area-inset-left));
   padding-right: max(0.75rem, env(safe-area-inset-right));
@@ -183,4 +199,170 @@
 
 @utility offset-safe-right {
   margin-right: env(safe-area-inset-right);
+}
+
+.studio-shell {
+  min-height: 100svh;
+  background-image: radial-gradient(ellipse at 12% 0%, oklch(0.79 0.078 57 / 5%), transparent 48%);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.studio-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid oklch(0.79 0.078 57 / 25%);
+  border-radius: 0.875rem;
+  color: var(--primary);
+  background: linear-gradient(145deg, oklch(0.79 0.078 57 / 9%), transparent);
+  box-shadow: 0 1px 0 oklch(1 0 0 / 5%) inset;
+}
+
+.cinema-stage {
+  isolation: isolate;
+  box-shadow: 0 24px 64px oklch(0 0 0 / 18%);
+}
+
+.cinema-empty {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 32%, oklch(0.79 0.078 57 / 7%), transparent 65%),
+    linear-gradient(145deg, oklch(0.22 0.008 65), oklch(0.145 0.006 65));
+}
+
+/* An optical aperture, drawn locally. No image requests or continuous motion. */
+.cinema-aperture {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(4.5rem, 10vw, 7rem);
+  height: clamp(4.5rem, 10vw, 7rem);
+  flex-shrink: 0;
+  border: 1px solid oklch(0.79 0.078 57 / 35%);
+  border-radius: 50%;
+  color: var(--primary);
+  background: radial-gradient(circle at 35% 25%, oklch(0.79 0.078 57 / 10%), transparent 75%);
+  box-shadow: 0 0 0 12px oklch(0.79 0.078 57 / 2%);
+}
+
+.cinema-aperture::before,
+.cinema-aperture::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: -18% -52%;
+  border: 1px solid oklch(0.79 0.078 57 / 13%);
+  border-radius: 50%;
+  transform: rotate(-28deg);
+}
+
+.cinema-aperture::after {
+  inset: -42% -85%;
+  border-color: oklch(0.79 0.078 57 / 7%);
+  transform: rotate(-28deg);
+}
+
+.cinema-seek-input,
+.cinema-volume-input {
+  margin: 0;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  touch-action: pan-y;
+  accent-color: var(--primary);
+}
+
+.cinema-seek-input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+
+.cinema-seek-input::-moz-range-track {
+  height: 6px;
+  background: transparent;
+}
+
+.cinema-volume-input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--input);
+}
+
+.cinema-volume-input::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--input);
+}
+
+.cinema-volume-input::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.cinema-seek-input::-webkit-slider-thumb,
+.cinema-volume-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background: var(--foreground);
+  box-shadow: 0 1px 4px oklch(0 0 0 / 30%);
+}
+
+.cinema-volume-input::-webkit-slider-thumb {
+  margin-top: -5px;
+}
+
+.cinema-seek-input::-moz-range-thumb,
+.cinema-volume-input::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background: var(--foreground);
+  box-shadow: 0 1px 4px oklch(0 0 0 / 30%);
+}
+
+.cinema-seek-input:disabled {
+  opacity: 0.4;
+}
+
+@media (min-width: 640px) {
+  .studio-shell {
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .cinema-seek-input,
+  .cinema-volume-input {
+    -webkit-appearance: auto;
+    appearance: auto;
+    forced-color-adjust: auto;
+  }
+
+  .cinema-aperture,
+  .studio-mark {
+    border-color: ButtonText;
+  }
 }
